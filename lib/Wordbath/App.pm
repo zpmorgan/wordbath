@@ -11,6 +11,11 @@ has win => (
   builder => '_build_win',
 );
 
+has _text_widget => (
+  isa => 'Gtk3::TextView',
+  is => 'rw',
+);
+
 sub _build_win{
   my $self = shift;
   my $win = Gtk3::Window->new();
@@ -29,10 +34,23 @@ sub _build_win{
     my $button1 = Gtk3::Button->new ('Quit');
     my $button2 = Gtk3::Button->new ('foo');
 
+    my $pbar = Gtk3::ProgressBar->new();
+    my $scrolled_text_stuff = Gtk3::ScrolledWindow->new();
+    {
+      $scrolled_text_stuff->set_vexpand(1);
+      $scrolled_text_stuff->set_hexpand(0);
+      my $wordbox = Gtk3::TextView->new();
+      $wordbox->set_wrap_mode('word');
+      $self->_text_widget($wordbox);
+      $scrolled_text_stuff->add($wordbox)
+    }
+
     $win->add($vbox);
     $vbox->pack_start($menubar, 0,0,0);
+    $vbox->pack_start($pbar, 0,0,0);
     $vbox->pack_start($button1, 0,0,0);
     $vbox->pack_start($button2, 0,0,0);
+    $vbox->pack_start($scrolled_text_stuff, 1,1,0);
   }
   $win->show_all();
   return $win;
