@@ -1,8 +1,13 @@
 package Wordbath::App;
 use Moose;
+use GStreamer -init;
 use Gtk3 -init;
+use FindBin '$Bin';
 
-#gtk3 stuff.
+my $LOOP; # ?
+$LOOP = Glib::MainLoop->new();
+
+#gtk3 & gstreamer stuff.
 
 has win => (
   isa => 'Gtk3::Window',
@@ -24,7 +29,7 @@ sub _build_win{
   $win->set_size_request(600,400);
   my $accel_group = Gtk3::AccelGroup->new;
   $win->add_accel_group($accel_group);
-  $win->signal_connect (destroy => sub { Gtk3::main_quit });
+  $win->signal_connect (destroy => sub { $LOOP->quit });
 
   {
     my $vbox = Gtk3::Box->new('vertical', 3);
@@ -59,9 +64,50 @@ sub _build_win{
 sub run{
   my $self = shift;
   $self->win;
-  Gtk3::main;
+  $LOOP->run();
+  #Gtk3::main;
 }
 
+my $omnibin;
+
+has pipeline => (
+  isa => 'GStreamer::Pipeline',
+  is => 'ro',
+  lazy => 1,
+  builder => '_build_pipeline',
+);
+
+sub _build_pipeline{
+  my $self = shift;
+  my $p = GStreamer::Pipeline->new('pipe_in');
+  my $b = GStreamer::Bin->new('bin_in');
+  my ($src,$decodebin,$end);
+
+  ($src,$decodebin,$end, $omnibin) =
+  map { GStreamer::ElementFactory->make($_ => $_) }
+    qw/filesrc decodebin  pulsesink playbin2/;
+  $p->add ($src,$decodebin,$end);
+  my $bus = $p->get_bus();
+  $bus->signal_connect('message::error', sub{warn @_, "\n"}, 1);
+  $bus->signal_connect('message::state-changed', sub{warn @_, "\n"}, 1);
+  return $p;
+}
+
+sub load_audio_file{
+  my ($self,$f) = @_;
+  warn "loading $f";
+  $self->pipeline->get_by_name('filesrc')->set(location => $f);
+
+  my $file= '/dchha48_Prophets_of_Doom.mp3';
+  my $path = $Bin . '/' . $file;
+  $omnibin-> set(uri => Glib::filename_to_uri $path, "localhost");
+}
+sub play{
+  my ($self) = @_;
+  $self->pipeline->set_state('playing');
+  $omnibin -> set_state("playing");
+  warn 'PLAYING';
+}
 
 1;
 
