@@ -14,8 +14,27 @@ has win => (
 sub _build_win{
   my $self = shift;
   my $win = Gtk3::Window->new();
-  $win->show_all();
+  $win->set_title('Wordbath');
+  $win->set_border_width(0);
+  $win->set_size_request(600,400);
+  my $accel_group = Gtk3::AccelGroup->new;
+  $win->add_accel_group($accel_group);
   $win->signal_connect (destroy => sub { Gtk3::main_quit });
+
+  {
+    my $vbox = Gtk3::Box->new('vertical', 3);
+    my $menubar = Gtk3::MenuBar->new();
+    my $menuitem = Gtk3::MenuItem->new_with_label('foo');
+    $menubar->append($menuitem);
+    my $button1 = Gtk3::Button->new ('Quit');
+    my $button2 = Gtk3::Button->new ('foo');
+
+    $win->add($vbox);
+    $vbox->pack_start($menubar, 0,0,0);
+    $vbox->pack_start($button1, 0,0,0);
+    $vbox->pack_start($button2, 0,0,0);
+  }
+  $win->show_all();
   return $win;
 }
 
