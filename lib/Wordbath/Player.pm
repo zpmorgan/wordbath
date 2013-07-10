@@ -1,10 +1,18 @@
 package Wordbath::Player;
 use Moose;
+use Modern::Perl;
 use GStreamer -init;
 use FindBin '$Bin';
 
 #gstreamer stuff.
-sub DEBUG{};
+sub DEBUG{}
+sub BILLION{10**9}
+
+has pos_ns => (
+  isa => 'Int',
+  is => 'rw',
+  default => 30 * BILLION,
+);
 
 has pipeline => (
   isa => 'GStreamer::Pipeline',
@@ -13,8 +21,16 @@ has pipeline => (
   builder => '_build_pipeline',
 );
 
-my $fsrc;
+has _nl_src => (
+  isa => 'GStreamer::Element',
+  is => 'rw',
+);
+has _audio_out => (
+  isa => 'GStreamer::Element',
+  is => 'rw',
+);
 
+my $fsrc;
 
 sub _build_pipeline{
   my $self = shift;
@@ -28,19 +44,20 @@ sub _build_pipeline{
     });
   $bus->signal_connect('message::state-changed', sub{
       my ($bus,$msg) = @_;
-      DEBUG ('state changed: ' . $msg->old_state .'  ===>  '. $msg->new_state);
+      say ($msg->src .' state changed: ' . $msg->old_state .'  ===>  '. $msg->new_state);
     });
 
-  my ($decoder,$end);
-  ($fsrc,$decoder,$end) =
-  map { GStreamer::ElementFactory->make($_ => $_) }
-    qw/filesrc decodebin2  autoaudiosink/;
-  $p->add ($fsrc,$decoder,$end);
-  $fsrc->link($decoder);
-  $decoder->link($end);
-  $decoder->signal_connect ('pad-added' => sub{
+  $self->_audio_out(
+    GStreamer::ElementFactory->make(autoaudiosink => 'autoaudiosink'));
+  $self->_nl_src(
+    GStreamer::ElementFactory->make(gnlurisource => 'gnlurisource'));
+  $p->add ($self->_nl_src, $self->_audio_out);
+  $self->_nl_src->link($self->_audio_out);
+  $self->_nl_src->signal_connect ('pad-added' => sub{
+      warn 'New pad.';
       my ($bin,$pad) = @_;
-      my $snk = $end->get_pad('sink');
+      my $snk = $self->_audio_out->get_pad('sink');
+      warn 'Pad already linked' if $snk->is_linked();
       return if $snk->is_linked();
       $pad->link($snk);
     });
@@ -50,16 +67,16 @@ sub _build_pipeline{
 sub load_audio_file{
   my ($self,$f) = @_;
   $self->pipeline;
-  DEBUG "loading $f";
-  $fsrc->set(location => $f);
-
-  #my $file= '/dchha48_Prophets_of_Doom.mp3';
-  #my $path = $Bin . '/' . $file;
-  #$omnibin-> set(uri => Glib::filename_to_uri $path, "localhost");
+  # src.set_property('uri', 'file:///my/cool/video')
+  my $pathuri = "file://$Bin/$f";
+  warn "loading URI: $pathuri";
+  $self->_nl_src->set(uri=> $pathuri);
 }
 sub play{
   my ($self) = @_;
   $self->pipeline->set_state('playing');
+  $self->_nl_src->set('media-start' => 0);
+  $self->_nl_src->set('media-duration' => 2*BILLION);
   DEBUG 'PLAYING';
 }
 sub shut_down{
