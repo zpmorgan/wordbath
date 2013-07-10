@@ -7,6 +7,8 @@ use FindBin '$Bin';
 my $LOOP; # ?
 $LOOP = Glib::MainLoop->new();
 
+sub DEBUG{};
+
 #gtk3 & gstreamer stuff.
 
 has win => (
@@ -29,7 +31,10 @@ sub _build_win{
   $win->set_size_request(600,400);
   my $accel_group = Gtk3::AccelGroup->new;
   $win->add_accel_group($accel_group);
-  $win->signal_connect (destroy => sub { $LOOP->quit });
+  $win->signal_connect (destroy => sub { 
+      $self->pipeline->set_state('null');
+      $LOOP->quit;
+    });
 
   {
     my $vbox = Gtk3::Box->new('vertical', 3);
@@ -69,6 +74,7 @@ sub run{
 }
 
 my $omnibin;
+my $fsrc;
 
 has pipeline => (
   isa => 'GStreamer::Pipeline',
@@ -81,22 +87,38 @@ sub _build_pipeline{
   my $self = shift;
   my $p = GStreamer::Pipeline->new('pipe_in');
   my $b = GStreamer::Bin->new('bin_in');
-  my ($src,$decodebin,$end);
-
-  ($src,$decodebin,$end, $omnibin) =
-  map { GStreamer::ElementFactory->make($_ => $_) }
-    qw/filesrc decodebin  pulsesink playbin2/;
-  $p->add ($src,$decodebin,$end);
   my $bus = $p->get_bus();
-  $bus->signal_connect('message::error', sub{warn @_, "\n"}, 1);
-  $bus->signal_connect('message::state-changed', sub{warn @_, "\n"}, 1);
+  $bus->add_signal_watch;
+  $bus->signal_connect('message::error', sub{
+      my ($bus,$msg) = @_;
+      warn 'err: ' . $msg->error;
+    });
+  $bus->signal_connect('message::state-changed', sub{
+      my ($bus,$msg) = @_;
+      DEBUG ('state changed: ' . $msg->old_state .'  ===>  '. $msg->new_state);
+    });
+
+  my ($decoder,$end);
+  ($fsrc,$decoder,$end, $omnibin) =
+  map { GStreamer::ElementFactory->make($_ => $_) }
+    qw/filesrc decodebin2  autoaudiosink playbin2/;
+  $p->add ($fsrc,$decoder,$end);
+  $fsrc->link($decoder);
+  $decoder->link($end);
+  $decoder->signal_connect ('pad-added' => sub{
+      my ($bin,$pad) = @_;
+      my $snk = $end->get_pad('sink');
+      return if $snk->is_linked();
+      $pad->link($snk);
+    });
   return $p;
 }
 
 sub load_audio_file{
   my ($self,$f) = @_;
-  warn "loading $f";
-  $self->pipeline->get_by_name('filesrc')->set(location => $f);
+  $self->pipeline;
+  DEBUG "loading $f";
+  $fsrc->set(location => $f);
 
   my $file= '/dchha48_Prophets_of_Doom.mp3';
   my $path = $Bin . '/' . $file;
@@ -105,8 +127,8 @@ sub load_audio_file{
 sub play{
   my ($self) = @_;
   $self->pipeline->set_state('playing');
-  $omnibin -> set_state("playing");
-  warn 'PLAYING';
+  #$omnibin -> set_state("playing");
+  DEBUG 'PLAYING';
 }
 
 1;
