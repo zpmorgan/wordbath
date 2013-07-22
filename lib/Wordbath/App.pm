@@ -3,6 +3,10 @@ use Moose;
 use Gtk3 -init;
 use FindBin '$Bin';
 
+my @audio_rate_options = (
+  .25,.35,.45,.55,.65,.75,.85,1,1.25,1.5,1.75,2
+);
+
 my $LOOP; # ?
 $LOOP = Glib::MainLoop->new();
 
@@ -68,8 +72,24 @@ sub _build_win{
       $scrolled_text_stuff->add($wordbox)
     }
 
+    # click on these buttons to change audio speed.
+    my @rate_buttons;
+    for my $rate (@audio_rate_options){
+      my $percent_text = ($rate*100) . '%';
+      my $ratbutt = Gtk3::Button->new ($percent_text);
+      $ratbutt->signal_connect ( clicked => sub{
+          $self->player->set_rate($rate);
+        });
+      push @rate_buttons, $ratbutt;
+    }
+    my $ratbuttbar = Gtk3::Box->new('horizontal', 3);
+    for (@rate_buttons){
+      $ratbuttbar->pack_start($_,0,0,0);
+    }
+
     $win->add($vbox);
     $vbox->pack_start($menubar, 0,0,0);
+    $vbox->pack_start($ratbuttbar, 0,0,0);
     $vbox->pack_start($pbar, 0,0,0);
     $vbox->pack_start($button1, 0,0,0);
     $vbox->pack_start($button2, 0,0,0);
@@ -88,6 +108,22 @@ sub _build_win{
   return $win;
 }
 
+# example: 3700 -> "01:01:40"
+sub _fmt_time_sec{
+  my $tot_sec = int shift;
+  my $sec = $tot_sec % 60;
+  my $time_txt = sprintf ("%02d", $sec);
+  my $min = int($tot_sec/60) % 60;
+  $time_txt = sprintf("%02d:$time_txt", $min);
+
+  #display hours?
+  if ($tot_sec >= 3600){
+    my $hr = int($tot_sec / 3600);
+    $time_txt = sprintf("%02d:$time_txt", $hr);
+  }
+  return $time_txt;
+}
+
 #called several times per second.
 sub update_clock{
   my ($self, $clock) = @{shift()};
@@ -96,7 +132,7 @@ sub update_clock{
   my $dur_ns = $self->player->dur_ns;
   my $pos_sec = int ($pos_ns / 10**9);
   my $dur_sec = int ($dur_ns / 10**9);
-  my $new_clock_text = "$pos_sec / $dur_sec";
+  my $new_clock_text = _fmt_time_sec($pos_sec) .' / '. _fmt_time_sec($dur_sec);
   $clock_label->set_text($new_clock_text);
   $clock->show_all();
   return 1;
