@@ -30,7 +30,7 @@ has _audio_out => (
   isa => 'GStreamer::Element',
   is => 'rw',
 );
-has _stretcher_element => (
+has [qw/_dec _stretcher_element/] => (
   isa => 'GStreamer::Element',
   is => 'rw',
 );
@@ -41,7 +41,8 @@ sub _build_pipeline{
   my $self = shift;
   ##my $p = GStreamer::Pipeline->new('pipe_in');
   my $pipeline = GStreamer::parse_launch(
-    "gnlurisource name=gnlsrc ! ".
+    #   "gnlurisource name=gnlsrc ! ".
+    "filesrc name=gnlsrc ! decodebin2 name=derc !".
     "queue ! audioconvert ! audioresample ! ".
     "scaletempo name=stempo ! ".
     "audioconvert ! audioresample ! ".
@@ -49,7 +50,7 @@ sub _build_pipeline{
   my $gnlsrc = $pipeline->get_by_name('gnlsrc');
   my $stempo = $pipeline->get_by_name('stempo');
   my $speakers= $pipeline->get_by_name('speakers');
-  #my $b = GStreamer::Bin->new('bin_in');
+  my $dec= $pipeline->get_by_name('derc');
 
   my $bus = $pipeline->get_bus();
   $bus->add_signal_watch;
@@ -66,7 +67,7 @@ sub _build_pipeline{
   $gnlsrc->signal_connect ('pad-added' => sub{
       warn 'New pad.';
       my ($bin,$pad) = @_;
-      my $snk = $stempo->get_pad('sink');
+      my $snk = $dec->get_pad('sink');
       if ($snk->is_linked()){
         warn 'Pad already linked' if $snk->is_linked();
         return;
@@ -77,13 +78,16 @@ sub _build_pipeline{
   $self->_audio_out( $speakers );
   $self->_nl_src( $gnlsrc );
   $self->_stretcher_element( $stempo );
+  $self->_dec( $dec);
   return $pipeline;
 }
 
 sub set_rate{
   my ($self, $rate) = @_;
   my $pos = $self->pos_ns();
-  $self->pipeline->seek($rate, 'time', [qw/flush accurate/], set => $pos, none => -1);
+  $pos = 0 unless $pos;
+  say "Seeking: pos is $pos, new rate is $rate.";
+  $self->pipeline->seek($rate, 'time', [qw/segment flush accurate/], set => $pos, none => -1);
 }
 
 sub pos_ns{
@@ -116,13 +120,13 @@ sub load_audio_file{
   # src.set_property('uri', 'file:///my/cool/video')
   my $pathuri = "file://$Bin/$f";
   warn "loading URI: $pathuri";
-  $self->_nl_src->set(uri=> $pathuri);
+  $self->_nl_src->set(location => $f);
 }
 sub play{
   my ($self) = @_;
   $self->pipeline->set_state('playing');
-  $self->_nl_src->set('media-start' => 0);
-  $self->_nl_src->set('media-duration' => 5*BILLION);
+  #$self->_nl_src->set('media-start' => 0);
+  #$self->_nl_src->set('media-duration' => 5*BILLION);
   DEBUG 'PLAYING';
 }
 sub shut_down{
