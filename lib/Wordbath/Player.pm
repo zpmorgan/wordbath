@@ -92,14 +92,16 @@ sub pos_ns{
 }
 sub len_ns{
   my $self = shift;
-  warn "FOO\n";
-  my $len = $self->_nl_src->query_duration();
-  return $len;
+  my $q = GStreamer::Query::Duration->new('time');
+  my $success = $self->pipeline->query($q);
+  if ($success){
+    my $pos = ($q->duration)[1];
+    return $pos;
+  }
 }
 sub print_status{
   my $self = shift;
   warn 'FOO';
-  warn join ",", $self->_audio_out->query_position();
 }
 
 sub load_audio_file{
