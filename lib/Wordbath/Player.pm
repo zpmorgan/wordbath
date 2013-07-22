@@ -9,7 +9,7 @@ use FindBin '$Bin';
 sub DEBUG{}
 sub BILLION{10**9}
 
-has pos_ns => (
+has pos_nsFOO => (
   isa => 'Int',
   is => 'rw',
   default => 30 * BILLION,
@@ -80,6 +80,28 @@ sub _build_pipeline{
   return $pipeline;
 }
 
+sub pos_ns{
+  my $self = shift;
+  my $q = GStreamer::Query::Position->new('time');
+  my $success = $self->pipeline->query($q);
+  #warn "$res res, pos ". ($q->position)[1];
+  if ($success){
+    my $pos = ($q->position)[1];
+    return $pos;
+  }
+}
+sub len_ns{
+  my $self = shift;
+  warn "FOO\n";
+  my $len = $self->_nl_src->query_duration();
+  return $len;
+}
+sub print_status{
+  my $self = shift;
+  warn 'FOO';
+  warn join ",", $self->_audio_out->query_position();
+}
+
 sub load_audio_file{
   my ($self,$f) = @_;
   $self->pipeline;
@@ -92,7 +114,7 @@ sub play{
   my ($self) = @_;
   $self->pipeline->set_state('playing');
   $self->_nl_src->set('media-start' => 0);
-  $self->_nl_src->set('media-duration' => 2*BILLION);
+  $self->_nl_src->set('media-duration' => 5*BILLION);
   DEBUG 'PLAYING';
 }
 sub shut_down{

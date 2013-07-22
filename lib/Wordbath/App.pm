@@ -72,6 +72,11 @@ sub _build_win{
     $vbox->pack_start($button1, 0,0,0);
     $vbox->pack_start($button2, 0,0,0);
     $vbox->pack_start($scrolled_text_stuff, 1,1,0);
+    $button1->signal_connect('clicked', sub{
+        my $text = $self->player->pos_ns();
+        #$self->player->print_status();
+        $button1->set_label( $text );
+      });
   }
   $win->show_all();
   return $win;
