@@ -51,7 +51,9 @@ sub _build_win{
     my $vbox = Gtk3::Box->new('vertical', 3);
     my $menubar = Gtk3::MenuBar->new();
     my $menuitem = Gtk3::MenuItem->new_with_label('foo');
+    my $clock = Gtk3::MenuItem->new_with_label('12:34');
     $menubar->append($menuitem);
+    $menubar->append($clock);
     my $button1 = Gtk3::Button->new ('Quit');
     my $button2 = Gtk3::Button->new ('foo');
 
@@ -80,9 +82,24 @@ sub _build_win{
     $button2->signal_connect('clicked', sub{
         $self->player->set_rate(.25);
       });
+    Glib::Timeout->add( 40, \&update_clock, [$self, $clock]);
   }
   $win->show_all();
   return $win;
+}
+
+#called several times per second.
+sub update_clock{
+  my ($self, $clock) = @{shift()};
+  my $clock_label = $clock->get_child;
+  my $pos_ns = $self->player->pos_ns;
+  my $dur_ns = $self->player->dur_ns;
+  my $pos_sec = int ($pos_ns / 10**9);
+  my $dur_sec = int ($dur_ns / 10**9);
+  my $new_clock_text = "$pos_sec / $dur_sec";
+  $clock_label->set_text($new_clock_text);
+  $clock->show_all();
+  return 1;
 }
 
 sub run{

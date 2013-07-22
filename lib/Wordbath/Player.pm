@@ -100,13 +100,13 @@ sub pos_ns{
     return $pos;
   }
 }
-sub len_ns{
+sub dur_ns{
   my $self = shift;
   my $q = GStreamer::Query::Duration->new('time');
   my $success = $self->pipeline->query($q);
   if ($success){
-    my $pos = ($q->duration)[1];
-    return $pos;
+    my $dur= ($q->duration)[1];
+    return $dur;
   }
 }
 sub print_status{
