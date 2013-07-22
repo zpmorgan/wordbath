@@ -80,6 +80,12 @@ sub _build_pipeline{
   return $pipeline;
 }
 
+sub set_rate{
+  my ($self, $rate) = @_;
+  my $pos = $self->pos_ns();
+  $self->pipeline->seek($rate, 'time', [qw/flush accurate/], set => $pos, none => -1);
+}
+
 sub pos_ns{
   my $self = shift;
   my $q = GStreamer::Query::Position->new('time');

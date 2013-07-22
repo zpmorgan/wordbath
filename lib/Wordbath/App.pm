@@ -77,6 +77,9 @@ sub _build_win{
         #$self->player->print_status();
         $button1->set_label( $text );
       });
+    $button2->signal_connect('clicked', sub{
+        $self->player->set_rate(.25);
+      });
   }
   $win->show_all();
   return $win;
