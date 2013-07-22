@@ -5,6 +5,7 @@ use GStreamer -init;
 use FindBin '$Bin';
 
 #gstreamer stuff.
+#todo: subband sinusoidal modeling?
 sub DEBUG{}
 sub BILLION{10**9}
 
@@ -26,6 +27,10 @@ has _nl_src => (
   is => 'rw',
 );
 has _audio_out => (
+  isa => 'GStreamer::Element',
+  is => 'rw',
+);
+has _stretcher_element => (
   isa => 'GStreamer::Element',
   is => 'rw',
 );
@@ -51,12 +56,17 @@ sub _build_pipeline{
     GStreamer::ElementFactory->make(autoaudiosink => 'autoaudiosink'));
   $self->_nl_src(
     GStreamer::ElementFactory->make(gnlurisource => 'gnlurisource'));
+  $self->_stretcher_element(
+    GStreamer::ElementFactory->make(identity => 'stretcher'));
+    #GStreamer::ElementFactory->make(identity => 'stretcher'));
   $p->add ($self->_nl_src, $self->_audio_out);
-  $self->_nl_src->link($self->_audio_out);
+  $p->add ($self->_nl_src, $self->_stretcher_element, $self->_audio_out);
+  $self->_nl_src->link($self->_stretcher_element);
+  $self->_stretcher_element->link($self->_audio_out);
   $self->_nl_src->signal_connect ('pad-added' => sub{
       warn 'New pad.';
       my ($bin,$pad) = @_;
-      my $snk = $self->_audio_out->get_pad('sink');
+      my $snk = $self->_stretcher_element->get_pad('sink');
       warn 'Pad already linked' if $snk->is_linked();
       return if $snk->is_linked();
       $pad->link($snk);
