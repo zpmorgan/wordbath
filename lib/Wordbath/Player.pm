@@ -39,9 +39,19 @@ my $fsrc;
 
 sub _build_pipeline{
   my $self = shift;
-  my $p = GStreamer::Pipeline->new('pipe_in');
-  my $b = GStreamer::Bin->new('bin_in');
-  my $bus = $p->get_bus();
+  ##my $p = GStreamer::Pipeline->new('pipe_in');
+  my $pipeline = GStreamer::parse_launch(
+    "gnlurisource name=gnlsrc ! ".
+    "queue ! audioconvert ! audioresample ! ".
+    "scaletempo name=stempo ! ".
+    "audioconvert ! audioresample ! ".
+    "autoaudiosink name=speakers");
+  my $gnlsrc = $pipeline->get_by_name('gnlsrc');
+  my $stempo = $pipeline->get_by_name('stempo');
+  my $speakers= $pipeline->get_by_name('speakers');
+  #my $b = GStreamer::Bin->new('bin_in');
+
+  my $bus = $pipeline->get_bus();
   $bus->add_signal_watch;
   $bus->signal_connect('message::error', sub{
       my ($bus,$msg) = @_;
@@ -51,27 +61,23 @@ sub _build_pipeline{
       my ($bus,$msg) = @_;
       say ($msg->src .' state changed: ' . $msg->old_state .'  ===>  '. $msg->new_state);
     });
-
-  $self->_audio_out(
-    GStreamer::ElementFactory->make(autoaudiosink => 'autoaudiosink'));
-  $self->_nl_src(
-    GStreamer::ElementFactory->make(gnlurisource => 'gnlurisource'));
-  $self->_stretcher_element(
-    GStreamer::ElementFactory->make(identity => 'stretcher'));
-    #GStreamer::ElementFactory->make(identity => 'stretcher'));
-  $p->add ($self->_nl_src, $self->_audio_out);
-  $p->add ($self->_nl_src, $self->_stretcher_element, $self->_audio_out);
-  $self->_nl_src->link($self->_stretcher_element);
-  $self->_stretcher_element->link($self->_audio_out);
-  $self->_nl_src->signal_connect ('pad-added' => sub{
+  #$self->_nl_src->link($self->_stretcher_element);
+  #$self->_stretcher_element->link($self->_audio_out);
+  $gnlsrc->signal_connect ('pad-added' => sub{
       warn 'New pad.';
       my ($bin,$pad) = @_;
-      my $snk = $self->_stretcher_element->get_pad('sink');
-      warn 'Pad already linked' if $snk->is_linked();
-      return if $snk->is_linked();
+      my $snk = $stempo->get_pad('sink');
+      if ($snk->is_linked()){
+        warn 'Pad already linked' if $snk->is_linked();
+        return;
+      }
       $pad->link($snk);
     });
-  return $p;
+
+  $self->_audio_out( $speakers );
+  $self->_nl_src( $gnlsrc );
+  $self->_stretcher_element( $stempo );
+  return $pipeline;
 }
 
 sub load_audio_file{
