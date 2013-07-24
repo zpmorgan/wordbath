@@ -1,2 +1,13 @@
-A transcription app. ontrol audio position/speed with F-keys
-while typing into a text widget.
+Wordbath -- A transcription tool.
+
+Invoke with a URL or a filesystem path to some audio.
+Audio via URLs is saved to /tmp/wordbath.
+Adjust playback speed with by clicking on buttons.
+When finished, use 'cat', the one true text editor, to spew the transcription to a file.
+
+todo:
+  * control audio position/speed with F-keys.
+  * saving/loading of text.
+  * a stack of transcription contexts.
+  * saved audio position in text location.
+
