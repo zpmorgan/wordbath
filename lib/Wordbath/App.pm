@@ -1,5 +1,6 @@
 package Wordbath::App;
 use Moose;
+use Modern::Perl;
 use Gtk3 -init;
 use FindBin '$Bin';
 use Pango;
@@ -61,6 +62,7 @@ sub _build_win{
       $self->player->shut_down();
       $LOOP->quit;
     });
+  $win->signal_connect('key-press-event', \&_win_key_press, $self);
 
   {
     my $vbox = Gtk3::Box->new('vertical', 3);
@@ -147,6 +149,16 @@ sub _click_1_to_2{
   my ($widget, $event) = @_;
   if( $event->button == 1){
     $event->button (2);
+  }
+  return 0;
+}
+sub _win_key_press{
+  my ($w, $e, $self) = @_;
+  say "state: ". $e->state .' ,  button: '. $e->keyval;
+  if($e->keyval == 32 && ($e->state * 'shift-mask')){
+    say 'TOGGLE';
+    $self->player->toggle_play_state;
+    return 1;
   }
   return 0;
 }

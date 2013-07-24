@@ -93,6 +93,7 @@ sub set_rate{
 
 sub seek_sec{
   my ($self, $sec) = @_;
+  say "seeking to $sec.";
   $self->pipeline->seek($self->rate, 'time', [qw/flush accurate/], set => $sec*10**9, none => -1);
 }
 
@@ -108,7 +109,6 @@ sub pos_ns{
 }
 sub dur_ns{
   my $self = shift;
-  $self->pipeline->set_state('playing');
   my $q = GStreamer::Query::Duration->new('time');
   my $success = $self->pipeline->query($q);
   if ($success){
@@ -116,6 +116,7 @@ sub dur_ns{
     return $dur;
   }
   else {
+    $self->pipeline->set_state('playing');
     die 'could not query duration.';
   }
 }
@@ -145,6 +146,16 @@ sub shut_down{
   my ($self) = @_;
   $self->pipeline->set_state('null');
   DEBUG 'SHUTTING DOWN';
+}
+sub toggle_play_state{
+  my ($self) = @_;
+  my @state = ($self->pipeline->get_state(10**9));
+  say 'TOGGLING. '. $state[1];
+  if ($state[1] eq 'playing'){
+    $self->pipeline->set_state('paused');
+  } else {
+    $self->pipeline->set_state('playing');
+  }
 }
 
 1;
