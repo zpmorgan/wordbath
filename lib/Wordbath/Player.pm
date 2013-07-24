@@ -9,10 +9,10 @@ use FindBin '$Bin';
 sub DEBUG{}
 sub BILLION{10**9}
 
-has pos_nsFOO => (
-  isa => 'Int',
+has rate => (
+  isa => 'Num',
   is => 'rw',
-  default => 30 * BILLION,
+  default => 1,
 );
 
 has pipeline => (
@@ -87,7 +87,13 @@ sub set_rate{
   my $pos = $self->pos_ns();
   $pos = 0 unless $pos;
   say "Seeking: pos is $pos, new rate is $rate.";
-  $self->pipeline->seek($rate, 'time', [qw/segment flush accurate/], set => $pos, none => -1);
+  $self->pipeline->seek($rate, 'time', [qw/flush accurate/], set => $pos, none => -1);
+  $self->rate($rate);
+}
+
+sub seek_sec{
+  my ($self, $sec) = @_;
+  $self->pipeline->seek($self->rate, 'time', [qw/flush accurate/], set => $sec*10**9, none => -1);
 }
 
 sub pos_ns{
@@ -102,11 +108,15 @@ sub pos_ns{
 }
 sub dur_ns{
   my $self = shift;
+  $self->pipeline->set_state('playing');
   my $q = GStreamer::Query::Duration->new('time');
   my $success = $self->pipeline->query($q);
   if ($success){
     my $dur= ($q->duration)[1];
     return $dur;
+  }
+  else {
+    die 'could not query duration.';
   }
 }
 sub print_status{
@@ -114,13 +124,15 @@ sub print_status{
   warn 'FOO';
 }
 
-sub load_audio_file{
+sub _load_audio_file{
   my ($self,$f) = @_;
   $self->pipeline;
   # src.set_property('uri', 'file:///my/cool/video')
   my $pathuri = "file://$Bin/$f";
   warn "loading URI: $pathuri";
   $self->_nl_src->set(location => $f);
+  $self->pipeline->set_state('paused');
+  $self->pipeline->get_state(10**9);
 }
 sub play{
   my ($self) = @_;

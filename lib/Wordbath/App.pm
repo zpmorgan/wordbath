@@ -25,6 +25,16 @@ has _text_widget => (
   isa => 'Gtk3::TextView',
   is => 'rw',
 );
+has _seekbar => (
+  isa => 'Gtk3::Scale',
+  is => 'rw',
+);
+
+has _natural_seekbar_value => (
+  isa => 'Num',
+  is => 'rw',
+  default => 0,
+);
 
 has player => (
   isa => 'Wordbath::Player',
@@ -61,7 +71,14 @@ sub _build_win{
     my $button1 = Gtk3::Button->new ('Quit');
     my $button2 = Gtk3::Button->new ('foo');
 
-    my $pbar = Gtk3::ProgressBar->new();
+    my $seekbar = Gtk3::Scale->new('horizontal', Gtk3::Adjustment->new(0,0,100,1,0,0));
+    $seekbar->signal_connect('value-changed' => \&_seekbar_saught, $self);
+    $seekbar->set_draw_value(0);
+    $self->_seekbar($seekbar);
+
+    $seekbar->signal_connect('button-press-event', \&_click_1_to_2);
+    $seekbar->signal_connect('button-release-event', \&_click_1_to_2);
+
     my $scrolled_text_stuff = Gtk3::ScrolledWindow->new();
     {
       $scrolled_text_stuff->set_vexpand(1);
@@ -90,7 +107,7 @@ sub _build_win{
     $win->add($vbox);
     $vbox->pack_start($menubar, 0,0,0);
     $vbox->pack_start($ratbuttbar, 0,0,0);
-    $vbox->pack_start($pbar, 0,0,0);
+    $vbox->pack_start($seekbar, 0,0,0);
     $vbox->pack_start($button1, 0,0,0);
     $vbox->pack_start($button2, 0,0,0);
     $vbox->pack_start($scrolled_text_stuff, 1,1,0);
@@ -124,6 +141,22 @@ sub _fmt_time_sec{
   return $time_txt;
 }
 
+sub _seekbar_saught{
+  my ($widget, $self) = @_;
+  my $sb = $self->_seekbar;
+  my $value = $sb->get_value;
+  return if ($value == $self->_natural_seekbar_value);
+  $self->_natural_seekbar_value($value);
+  $self->player->seek_sec($value);
+}
+sub _click_1_to_2{
+  my ($widget, $event) = @_;
+  if( $event->button == 1){
+    $event->button (2);
+  }
+  return 0;
+}
+
 #called several times per second.
 sub update_clock{
   my ($self, $clock) = @{shift()};
@@ -135,6 +168,10 @@ sub update_clock{
   my $new_clock_text = _fmt_time_sec($pos_sec) .' / '. _fmt_time_sec($dur_sec);
   $clock_label->set_text($new_clock_text);
   $clock->show_all();
+  $self->_natural_seekbar_value($pos_sec);
+  $self->_seekbar->set_value($pos_sec);
+
+  #seekbar update position.
   return 1;
 }
 
@@ -143,6 +180,22 @@ sub run{
   $self->win;
   $LOOP->run();
   #Gtk3::main;
+}
+
+sub load_audio_file{
+  my ($self, $file) = @_;
+  $self->win; #generate widgets, if they don't exist yet.
+  $self->player->_load_audio_file($file);
+  $self->player->set_rate(1);
+  my $dur_sec = $self->player->dur_ns / 10**9;
+  $self->_natural_seekbar_value(0);
+  $self->_seekbar->set_range( 0, int $dur_sec );
+  $self->_seekbar->set_value( 0 );
+}
+
+sub play{
+  my $self = shift;
+  $self->player->play();
 }
 
 1;
