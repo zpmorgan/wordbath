@@ -159,11 +159,11 @@ sub update_clock{
   my $dur_sec = int ($dur_ns / 10**9);
   my $new_clock_text = _fmt_time_sec($pos_sec) .' / '. _fmt_time_sec($dur_sec);
   $clock_label->set_text($new_clock_text);
-  $clock->show_all();
+
+  #seekbar update position.
   $self->_natural_seekbar_value($pos_sec);
   $self->_seekbar->set_value($pos_sec);
 
-  #seekbar update position.
   return 1;
 }
 
