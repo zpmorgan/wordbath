@@ -67,9 +67,16 @@ sub _build_win{
   {
     my $vbox = Gtk3::Box->new('vertical', 3);
     my $menubar = Gtk3::MenuBar->new();
-    my $menuitem = Gtk3::MenuItem->new_with_label('foo');
+    my $file_menu = Gtk3::Menu->new();
+    my $file_menuitem = Gtk3::MenuItem->new_with_label('File');
+    $file_menuitem->set_submenu($file_menu);
+    my $save_item = Gtk3::MenuItem->new_with_label('Save');
+    my $quit_item = Gtk3::MenuItem->new_with_label('Quit');
+    $file_menu->append($save_item);
+    $file_menu->append($quit_item);
+
     my $clock = Gtk3::MenuItem->new_with_label('12:34');
-    $menubar->append($menuitem);
+    $menubar->append($file_menuitem);
     $menubar->append($clock);
 
     my $seekbar = Gtk3::Scale->new('horizontal', Gtk3::Adjustment->new(0,0,100,1,0,0));
