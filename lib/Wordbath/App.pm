@@ -160,6 +160,16 @@ sub _win_key_press{
     $self->player->toggle_play_state;
     return 1;
   }
+  #shift+left. Backwards 1 sec
+  if ($e->keyval == 65361 && ($e->state * 'shift-mask')){
+    $self->player->shift_seconds(-1);
+    return 1;
+  }
+  #shift+right. Forwards 1 sec
+  if ($e->keyval == 65363 && ($e->state * 'shift-mask')){
+    $self->player->shift_seconds(1);
+    return 1;
+  }
   return 0;
 }
 

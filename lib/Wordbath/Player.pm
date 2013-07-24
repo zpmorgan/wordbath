@@ -96,6 +96,13 @@ sub seek_sec{
   say "seeking to $sec.";
   $self->pipeline->seek($self->rate, 'time', [qw/flush accurate/], set => $sec*10**9, none => -1);
 }
+sub shift_seconds{
+  my ($self, $sec) = @_;
+  say "relative seek $sec seconds.";
+  $self->pipeline->seek($self->rate, 'time', [qw/flush accurate/],
+    set => $self->pos_ns + $sec*10**9,
+    none => -1);
+}
 
 sub pos_ns{
   my $self = shift;
