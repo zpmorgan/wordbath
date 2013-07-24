@@ -2,6 +2,7 @@ package Wordbath::App;
 use Moose;
 use Gtk3 -init;
 use FindBin '$Bin';
+use Pango;
 
 my @audio_rate_options = (
   .25,.35,.45,.55,.65,.75,.85,1,1.25,1.5,1.75,2
@@ -86,7 +87,10 @@ sub _build_win{
       my $wordbox = Gtk3::TextView->new();
       $wordbox->set_wrap_mode('word');
       $self->_text_widget($wordbox);
-      $scrolled_text_stuff->add($wordbox)
+      my $fontdesc = Pango::FontDescription->from_string('monospace 10');
+      $wordbox->modify_font($fontdesc);
+
+      $scrolled_text_stuff->add($wordbox);
     }
 
     # click on these buttons to change audio speed.
