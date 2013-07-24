@@ -98,6 +98,7 @@ sub _build_win{
       my $ratbutt = Gtk3::Button->new ($percent_text);
       $ratbutt->signal_connect ( clicked => sub{
           $self->player->set_rate($rate);
+          $self->_text_widget->grab_focus();
         });
       push @rate_buttons, $ratbutt;
     }
@@ -140,6 +141,7 @@ sub _seekbar_saught{
   return if ($value == $self->_natural_seekbar_value);
   $self->_natural_seekbar_value($value);
   $self->player->seek_sec($value);
+  $self->_text_widget->grab_focus();
 }
 sub _click_1_to_2{
   my ($widget, $event) = @_;
