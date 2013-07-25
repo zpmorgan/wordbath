@@ -31,6 +31,10 @@ has _seekbar => (
   isa => 'Gtk3::Scale',
   is => 'rw',
 );
+has _txt_pos_lbl => (
+  isa => 'Gtk3::Label',
+  is => 'rw',
+);
 
 has _natural_seekbar_value => (
   isa => 'Num',
@@ -63,8 +67,8 @@ sub _build_win{
       $LOOP->quit;
     });
   $win->signal_connect('key-press-event', \&_win_key_press, $self);
-
   {
+
     my $vbox = Gtk3::Box->new('vertical', 3);
     my $menubar = Gtk3::MenuBar->new();
     my $file_menu = Gtk3::Menu->new();
@@ -76,8 +80,11 @@ sub _build_win{
     $file_menu->append($quit_item);
 
     my $clock = Gtk3::MenuItem->new_with_label('12:34');
+    my $txt_pos = Gtk3::MenuItem->new_with_label('Ln:0  Col:0');
+    $self->_txt_pos_lbl($txt_pos->get_child());
     $menubar->append($file_menuitem);
     $menubar->append($clock);
+    $menubar->append($txt_pos);
 
     my $seekbar = Gtk3::Scale->new('horizontal', Gtk3::Adjustment->new(0,0,100,1,0,0));
     $seekbar->signal_connect('value-changed' => \&_seekbar_saught, $self);
@@ -96,6 +103,11 @@ sub _build_win{
       $self->_text_widget($wordbox);
       my $fontdesc = Pango::FontDescription->from_string('monospace 10');
       $wordbox->modify_font($fontdesc);
+
+      $wordbox->signal_connect('move-cursor', \&_on_txt_move, $self);
+      $wordbox->signal_connect('insert-at-cursor', \&_on_txt_insert, $self);
+      $wordbox->signal_connect('delete-from-cursor', \&_on_txt_delete, $self);
+      $wordbox->get_buffer->signal_connect('mark-set', \&_on_buf_mark_set, $self);
 
       $scrolled_text_stuff->add($wordbox);
     }
@@ -196,6 +208,39 @@ sub update_clock{
   $self->_seekbar->set_value($pos_sec);
 
   return 1;
+}
+
+#misc callbacks. mark-set seems to be kind of a catch-all.
+sub _on_txt_move{
+  my ($txt,$step_size, $count, $extend_selection, $self) = @_;
+  #$self->update_txt_pos_lbl;
+}
+sub _on_txt_insert{
+  my ($txt,$string, $self) = @_;
+  #$self->update_txt_pos_lbl;
+}
+sub _on_txt_delete{
+  my ($txt,$deltype, $count, $self) = @_;
+  #$self->update_txt_pos_lbl;
+}
+sub _on_buf_mark_set{
+  my ($txt,$iter, $mark, $self) = @_;
+  $self->update_txt_pos_lbl;
+}
+
+#called by callbacks on textview whenever text or cursor changes
+sub update_txt_pos_lbl{
+  my $self = shift;
+  my $txt = $self->_text_widget;
+  my $lbl = $self->_txt_pos_lbl;
+
+  my $buf = $txt->get_buffer;
+  my $textmark = $buf->get_insert;
+  my $textiter = $buf->get_iter_at_mark ($textmark);
+  my $line = $textiter->get_line;
+  my $col = $textiter->get_line_offset;
+  my $pos_txt = "Ln: $line, Col: $col";
+  $lbl->set_text($pos_txt);
 }
 
 sub run{
