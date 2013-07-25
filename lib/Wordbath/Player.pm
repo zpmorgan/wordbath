@@ -4,9 +4,21 @@ use Modern::Perl;
 use GStreamer -init;
 use FindBin '$Bin';
 
-#gstreamer stuff.
+#gstreamer stuff in this module.
 #todo: subband sinusoidal modeling?
-sub DEBUG{}
+
+sub LOG{
+  my ($cat, $msg) = @_;
+}
+sub DEBUG{
+  my ($msg) = @_;
+  LOG(debug => $msg);
+}
+sub GST_LOG{
+  my ($msg) = @_;
+  LOG(gstreamer => $msg);
+}
+
 sub BILLION{10**9}
 
 has rate => (
@@ -22,15 +34,8 @@ has pipeline => (
   builder => '_build_pipeline',
 );
 
-has _nl_src => (
-  isa => 'GStreamer::Element',
-  is => 'rw',
-);
-has _audio_out => (
-  isa => 'GStreamer::Element',
-  is => 'rw',
-);
-has [qw/_dec _stretcher_element/] => (
+# these are all created by the pipeline builder.
+has [qw/_nl_src _audio_out _dec _stretcher_element/] => (
   isa => 'GStreamer::Element',
   is => 'rw',
 );
@@ -60,7 +65,7 @@ sub _build_pipeline{
     });
   $bus->signal_connect('message::state-changed', sub{
       my ($bus,$msg) = @_;
-      say ($msg->src .' state changed: ' . $msg->old_state .'  ===>  '. $msg->new_state);
+      GST_LOG ($msg->src .' state changed: ' . $msg->old_state .'  ===>  '. $msg->new_state);
     });
   #$self->_nl_src->link($self->_stretcher_element);
   #$self->_stretcher_element->link($self->_audio_out);
@@ -86,19 +91,19 @@ sub set_rate{
   my ($self, $rate) = @_;
   my $pos = $self->pos_ns();
   $pos = 0 unless $pos;
-  say "Seeking: pos is $pos, new rate is $rate.";
+  GST_LOG ("Seeking: pos is $pos, new rate is $rate.");
   $self->pipeline->seek($rate, 'time', [qw/flush accurate/], set => $pos, none => -1);
   $self->rate($rate);
 }
 
 sub seek_sec{
   my ($self, $sec) = @_;
-  say "seeking to $sec.";
+  GST_LOG "seeking to $sec.";
   $self->pipeline->seek($self->rate, 'time', [qw/flush accurate/], set => $sec*10**9, none => -1);
 }
 sub shift_seconds{
   my ($self, $sec) = @_;
-  say "relative seek $sec seconds.";
+  GST_LOG "relative seek $sec seconds.";
   $self->pipeline->seek($self->rate, 'time', [qw/flush accurate/],
     set => $self->pos_ns + $sec*10**9,
     none => -1);
@@ -137,7 +142,7 @@ sub _load_audio_file{
   $self->pipeline;
   # src.set_property('uri', 'file:///my/cool/video')
   my $pathuri = "file://$Bin/$f";
-  warn "loading URI: $pathuri";
+  GST_LOG "loading URI: $pathuri";
   $self->_nl_src->set(location => $f);
   $self->pipeline->set_state('paused');
   $self->pipeline->get_state(10**9);
@@ -147,17 +152,17 @@ sub play{
   $self->pipeline->set_state('playing');
   #$self->_nl_src->set('media-start' => 0);
   #$self->_nl_src->set('media-duration' => 5*BILLION);
-  DEBUG 'PLAYING';
+  GST_LOG 'PLAYING';
 }
 sub shut_down{
   my ($self) = @_;
   $self->pipeline->set_state('null');
-  DEBUG 'SHUTTING DOWN';
+  GST_LOG 'SHUTTING DOWN. (pipeline state to null.)';
 }
 sub toggle_play_state{
   my ($self) = @_;
   my @state = ($self->pipeline->get_state(10**9));
-  say 'TOGGLING. '. $state[1];
+  GST_LOG 'TOGGLING. '. $state[1];
   if ($state[1] eq 'playing'){
     $self->pipeline->set_state('paused');
   } else {
