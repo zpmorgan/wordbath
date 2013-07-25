@@ -121,7 +121,7 @@ sub _build_win{
     $vbox->pack_start($ratbuttbar, 0,0,0);
     $vbox->pack_start($seekbar, 0,0,0);
     $vbox->pack_start($scrolled_text_stuff, 1,1,0);
-    Glib::Timeout->add( 40, \&update_clock, [$self, $clock]);
+    Glib::Timeout->add( 300, \&update_clock, [$self, $clock]);
   }
   $win->show_all();
   return $win;
@@ -169,12 +169,12 @@ sub _win_key_press{
   }
   #shift+left. Backwards 1 sec
   if ($e->keyval == 65361 && ($e->state * 'shift-mask')){
-    $self->player->shift_seconds(-1);
+    $self->player->shift_seconds(-2);
     return 1;
   }
   #shift+right. Forwards 1 sec
   if ($e->keyval == 65363 && ($e->state * 'shift-mask')){
-    $self->player->shift_seconds(1);
+    $self->player->shift_seconds(2);
     return 1;
   }
   return 0;
