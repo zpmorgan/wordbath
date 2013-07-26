@@ -70,8 +70,7 @@ sub _build_win{
   $win->add_accel_group($accel_group);
 
   $win->signal_connect (destroy => sub { 
-      $self->player->shut_down();
-      $LOOP->quit;
+      $self->please_quit();
     });
   $win->signal_connect('key-press-event', \&_win_key_press, $self);
   {
@@ -81,12 +80,20 @@ sub _build_win{
     $file_menu->set_accel_group($accel_group);
     my $file_menuitem = Gtk3::MenuItem->new_with_label('File');
     $file_menuitem->set_submenu($file_menu);
-    my $save_item = Gtk3::MenuItem->new_with_label('Save');
-    my $quit_item = Gtk3::MenuItem->new_with_label('Quit');
 
-    #$save_item->add_accelerator(Gtk3::Accelerator->parse('<Control>S'),'visible');
-    $accel_group->connect (115, ['control-mask'], ['visible'],
-                        sub {  $self->save_text  });
+    my $save_item = Gtk3::MenuItem->new_with_label('Save');
+    {
+      my ($keyval, $mask) = Gtk3::accelerator_parse('<Control>S');
+      $save_item->add_accelerator('activate', $accel_group, $keyval, $mask, 'visible');
+      $save_item->signal_connect(activate => sub{ $self->save_text });
+    }
+    my $quit_item = Gtk3::MenuItem->new_with_label('Quit');
+    {
+      my ($keyval, $mask) = Gtk3::accelerator_parse('<Control>Q');
+      $quit_item->add_accelerator('activate', $accel_group, $keyval, $mask, 'visible');
+      $quit_item->signal_connect(activate => sub{ $self->please_quit});
+    }
+
     $file_menu->append($save_item);
     $file_menu->append($quit_item);
 
@@ -276,6 +283,13 @@ sub load_audio_file{
 sub play{
   my $self = shift;
   $self->player->play();
+}
+
+sub please_quit{
+  my $self = shift;
+  $self->player->shut_down();
+  $LOOP->quit;
+  say 'good bye.';
 }
 
 sub current_text{
