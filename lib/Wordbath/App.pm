@@ -4,6 +4,7 @@ use Modern::Perl;
 use Gtk3 -init;
 use FindBin '$Bin';
 use Pango;
+use File::Slurp;
 
 my @audio_rate_options = (
   .25,.35,.45,.55,.65,.75,.85,1,1.25,1.5,1.75,2
@@ -48,6 +49,10 @@ has player => (
   lazy => 1,
   builder => '_build_player',
 );
+has _audio_path => (
+  isa => 'Str',
+  is => 'rw',
+);
 
 sub _build_player{
   my $self = shift;
@@ -56,26 +61,32 @@ sub _build_player{
 
 sub _build_win{
   my $self = shift;
+
   my $win = Gtk3::Window->new();
   $win->set_title('Wordbath');
   $win->set_border_width(0);
   $win->set_size_request(600,400);
   my $accel_group = Gtk3::AccelGroup->new;
   $win->add_accel_group($accel_group);
+
   $win->signal_connect (destroy => sub { 
       $self->player->shut_down();
       $LOOP->quit;
     });
   $win->signal_connect('key-press-event', \&_win_key_press, $self);
   {
-
     my $vbox = Gtk3::Box->new('vertical', 3);
     my $menubar = Gtk3::MenuBar->new();
     my $file_menu = Gtk3::Menu->new();
+    $file_menu->set_accel_group($accel_group);
     my $file_menuitem = Gtk3::MenuItem->new_with_label('File');
     $file_menuitem->set_submenu($file_menu);
     my $save_item = Gtk3::MenuItem->new_with_label('Save');
     my $quit_item = Gtk3::MenuItem->new_with_label('Quit');
+
+    #$save_item->add_accelerator(Gtk3::Accelerator->parse('<Control>S'),'visible');
+    $accel_group->connect (115, ['control-mask'], ['visible'],
+                        sub {  $self->save_text  });
     $file_menu->append($save_item);
     $file_menu->append($quit_item);
 
@@ -252,6 +263,7 @@ sub run{
 
 sub load_audio_file{
   my ($self, $file) = @_;
+  $self->_audio_path($file);
   $self->win; #generate widgets, if they don't exist yet.
   $self->player->_load_audio_file($file);
   $self->player->set_rate(1);
@@ -264,6 +276,29 @@ sub load_audio_file{
 sub play{
   my $self = shift;
   $self->player->play();
+}
+
+sub current_text{
+  my $self = shift;
+  my $buf = $self->_text_widget->get_buffer();
+  my ($start, $end) = $buf->get_bounds();
+  my $txt = $buf->get_text($start, $end, 0);
+  return $txt;
+}
+sub save_text{
+  my $self = shift;
+  my $file_path = $self->_text_file_path();
+  my $txt = $self->current_text;
+  #make sure there's a newline at the end?
+  $txt .= "\n" unless $txt =~ m|\n$|;
+
+  write_file($file_path, $txt);
+  say "wrote to $file_path";
+}
+sub _text_file_path{
+  my $self = shift;
+  my $audio_path = $self->_audio_path;
+  return $audio_path . '.txt';
 }
 
 1;
