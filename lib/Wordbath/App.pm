@@ -126,6 +126,7 @@ sub _build_win{
       $wordbox->signal_connect('insert-at-cursor', \&_on_txt_insert, $self);
       $wordbox->signal_connect('delete-from-cursor', \&_on_txt_delete, $self);
       $wordbox->get_buffer->signal_connect('mark-set', \&_on_buf_mark_set, $self);
+      $wordbox->get_buffer->signal_connect('changed', \&_on_buf_changed, $self);
 
       $scrolled_text_stuff->add($wordbox);
     }
@@ -191,9 +192,9 @@ sub _click_1_to_2{
 }
 sub _win_key_press{
   my ($w, $e, $self) = @_;
-  say "state: ". $e->state .' ,  button: '. $e->keyval;
+  DEBUG("state: ". $e->state .' ,  button: '. $e->keyval);
   if($e->keyval == 32 && ($e->state * 'shift-mask')){
-    say 'TOGGLE';
+    DEBUG('TOGGLE');
     $self->player->toggle_play_state;
     return 1;
   }
@@ -235,28 +236,40 @@ sub _on_txt_move{
 }
 sub _on_txt_insert{
   my ($txt,$string, $self) = @_;
-  #$self->update_txt_pos_lbl;
+  say "insertion event. txt: $string";
 }
 sub _on_txt_delete{
   my ($txt,$deltype, $count, $self) = @_;
-  #$self->update_txt_pos_lbl;
+  say "deletion event. deltype: $deltype, count: $count";
 }
 sub _on_buf_mark_set{
   my ($txt,$iter, $mark, $self) = @_;
   $self->update_txt_pos_lbl;
 }
+sub _on_buf_changed{
+  my ($txt, $self) = @_;
+  $self->update_txt_pos_lbl;
+  my ($line, $col) = $self->get_text_pos();
+  say "buf 'changed' event. Cursor: line $line, col $col";
+}
 
-#called by callbacks on textview whenever text or cursor changes
-sub update_txt_pos_lbl{
+sub get_text_pos{
   my $self = shift;
   my $txt = $self->_text_widget;
-  my $lbl = $self->_txt_pos_lbl;
-
   my $buf = $txt->get_buffer;
   my $textmark = $buf->get_insert;
   my $textiter = $buf->get_iter_at_mark ($textmark);
   my $line = $textiter->get_line;
   my $col = $textiter->get_line_offset;
+  return ($line, $col);
+}
+
+
+#called by callbacks on textview whenever text or cursor changes
+sub update_txt_pos_lbl{
+  my $self = shift;
+  my $lbl = $self->_txt_pos_lbl;
+  my ($line, $col) = $self->get_text_pos();
   my $pos_txt = "Ln: $line, Col: $col";
   $lbl->set_text($pos_txt);
 }
