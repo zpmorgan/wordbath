@@ -208,6 +208,10 @@ sub _win_key_press{
     $self->player->shift_seconds(2);
     return 1;
   }
+  # F5
+  if ($e->keyval == 65474){
+    $self->_next_speaker_label_in_text;
+  }
   return 0;
 }
 
@@ -251,6 +255,30 @@ sub _on_buf_changed{
   $self->update_txt_pos_lbl;
   my ($line, $col) = $self->get_text_pos();
   say "buf 'changed' event. Cursor: line $line, col $col";
+}
+
+sub _next_speaker_label_in_text{
+  my $self = shift;
+  # extract all labels from text.
+  my $txt = $self->current_text;
+  my @labels;
+  push @labels, $1 while $txt =~ m|\n([^:\n]{1,40}): |g;
+  my $next_lbl = $labels[-2];
+  return unless $next_lbl;
+  say "appending speaker label $next_lbl";
+  my $buf = $self->_text_widget->get_buffer();
+  my $end = $buf->get_end_iter();
+  my $newline_padding = '';
+  if ($txt =~ /[^\n]$/){
+    $newline_padding = "\n\n"
+  } elsif ($txt =~ /[^\n]\n$/){
+    $newline_padding = "\n"
+  }
+  $buf->insert($end, $newline_padding . $next_lbl . ': ');
+  $end = $buf->get_end_iter();
+  $buf->place_cursor($end);
+  my $textmark = $buf->get_insert;
+  $self->_text_widget->scroll_mark_onscreen($textmark);
 }
 
 sub get_text_pos{
