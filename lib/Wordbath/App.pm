@@ -262,18 +262,23 @@ sub _next_speaker_label_in_text{
   # extract all labels from text.
   my $txt = $self->current_text;
   my @labels;
-  push @labels, $1 while $txt =~ m|\n([^:\n]{1,40}): |g;
+  push @labels, $1 while $txt =~ m|\n([^:\n]{1,40}):\s|g;
   my $next_lbl = $labels[-2];
-  return unless $next_lbl;
+  #return unless $next_lbl;
+  $next_lbl //= 'Interviewer';
   say "appending speaker label $next_lbl";
   my $buf = $self->_text_widget->get_buffer();
-  my $end = $buf->get_end_iter();
-  my $newline_padding = '';
-  if ($txt =~ /[^\n]$/){
-    $newline_padding = "\n\n"
-  } elsif ($txt =~ /[^\n]\n$/){
-    $newline_padding = "\n"
+  for(1..10){  #strip some whitespace, char by char
+    my $end = $buf->get_end_iter();
+    my $pen = $buf->get_end_iter();
+    say $buf->get_text($pen,$end, 0);
+    $pen->backward_char;
+    say $buf->get_text($pen,$end, 0);
+    last if ($buf->get_text($pen,$end, 0) =~ /\S/);
+    $buf->delete($pen, $end);
   }
+  my $newline_padding = "\n\n";
+  my $end = $buf->get_end_iter();
   $buf->insert($end, $newline_padding . $next_lbl . ': ');
   $end = $buf->get_end_iter();
   $buf->place_cursor($end);
@@ -337,7 +342,8 @@ sub current_text{
   my $self = shift;
   my $buf = $self->_text_widget->get_buffer();
   my ($start, $end) = $buf->get_bounds();
-  my $txt = $buf->get_text($start, $end, 0);
+  $end->forward_char();
+  my $txt = $buf->get_text($start, $end, 1);
   return $txt;
 }
 sub save_text{
