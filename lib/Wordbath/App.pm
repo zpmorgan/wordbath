@@ -261,11 +261,13 @@ sub _next_speaker_label_in_text{
   my $self = shift;
   # extract all labels from text.
   my $txt = $self->current_text;
+  my $floating_spkr_lbl = qr|[^:\n]{1,40}|;
   my @labels;
-  push @labels, $1 while $txt =~ m|\n([^:\n]{1,40}):\s|g;
+  push @labels, $1 if $txt =~ m|^($floating_spkr_lbl):\s|;
+  push @labels, $1 while $txt =~ m|\n($floating_spkr_lbl):\s|g;
   my $next_lbl = $labels[-2];
   #return unless $next_lbl;
-  $next_lbl //= 'Interviewer';
+  $next_lbl //= $labels[-1] eq 'Interviewer' ? 'Interviewee' : 'Interviewer';
   say "appending speaker label $next_lbl";
   my $buf = $self->_text_widget->get_buffer();
   for(1..10){  #strip some whitespace, char by char
