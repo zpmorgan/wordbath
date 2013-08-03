@@ -6,10 +6,6 @@ use FindBin '$Bin';
 use Pango;
 use File::Slurp;
 
-my @audio_rate_options = (
-  .25,.35,.45,.55,.65,.75,.85,1,1.25,1.5,1.75,2
-);
-
 my $LOOP; # ?
 $LOOP = Glib::MainLoop->new();
 
@@ -131,21 +127,8 @@ sub _build_win{
       $scrolled_text_stuff->add($wordbox);
     }
 
-    # click on these buttons to change audio speed.
-    my @rate_buttons;
-    for my $rate (@audio_rate_options){
-      my $percent_text = ($rate*100) . '%';
-      my $ratbutt = Gtk3::Button->new ($percent_text);
-      $ratbutt->signal_connect ( clicked => sub{
-          $self->player->set_rate($rate);
-          $self->_text_widget->grab_focus();
-        });
-      push @rate_buttons, $ratbutt;
-    }
     my $ratbuttbar = Gtk3::Box->new('horizontal', 3);
-    for (@rate_buttons){
-      $ratbuttbar->pack_start($_,0,0,0);
-    }
+    $self->_populate_ratbuttbar($ratbuttbar);
 
     $win->add($vbox);
     $vbox->pack_start($menubar, 0,0,0);
@@ -211,11 +194,85 @@ sub _win_key_press{
   # F5
   if ($e->keyval == 65474){
     $self->_next_speaker_label_in_text;
+    return 1;
+  }
+  # F7
+  if ($e->keyval == 65476){
+    $self->_adjust_rate(-.03);
+    return 1;
+  }
+  # F8
+  if ($e->keyval == 65477){
+    $self->_adjust_rate(+.03);
+    return 1;
   }
   return 0;
 }
 
-#called several times per second.
+### Audio rate adjustment stuff.
+my @audio_rate_options = (
+  .25,.35,.45,.55,.65,.75,.85,1,1.25,1.5,1.75,2
+);
+
+has _ratbutts => (is => 'rw', isa => 'ArrayRef', default => sub{[]});
+has _cur_rate_lbl => (is => 'rw', isa => 'Gtk3::Label');
+has _ratbuttbar => (is => 'rw', isa => 'Gtk3::Box');
+
+sub _populate_ratbuttbar{
+  my ($self, $container) = @_;
+  $self->_ratbuttbar ($container);
+  # click on these buttons to change audio speed.
+  my @rate_buttons;
+  for my $rate (@audio_rate_options){
+    my $percent_text = ($rate*100) . '%';
+    my $ratbutt = Gtk3::Button->new ($percent_text);
+    $ratbutt->signal_connect ( clicked => \&_ratbutt_clicked, [$self,$rate]);
+    push @rate_buttons, $ratbutt;
+  }
+  for (@rate_buttons){
+    $container->pack_start($_,0,0,0);
+  }
+  $self->_ratbutts(\@rate_buttons);
+  $self->_cur_rate_lbl(Gtk3::Label->new('foo'));
+  $container->pack_start($self->_cur_rate_lbl, 0,0,0);
+}
+
+sub _ratbutt_clicked{
+  my ($wodget,$data) = @_;
+  my ($self,$rate) = @$data;
+  $self->player->set_rate($rate);
+  $self->_text_widget->grab_focus();
+}
+
+sub _adjust_rate {
+  my ($self, $adj) = @_;
+  my $prev_rate = $self->player->get_rate();
+  my $next_rate = $prev_rate + $adj;
+  return if $next_rate < .03;
+  $self->player->set_rate($next_rate);
+  $self->_cur_rate_lbl->set_text(($next_rate * 100) . '%');
+  #move the label around
+  my $pos = 0;
+  say "rate adjustment. next_rate: $next_rate";
+  for my $opt (0 .. $#audio_rate_options){
+    $pos = $opt;
+    last if $audio_rate_options[$opt] > $next_rate;
+    if ($audio_rate_options[$opt] == $next_rate){
+      # same frequency as a button.
+      $pos = -1;
+      last;
+    }
+  }
+  if ($pos >= 0){
+    $self->_ratbuttbar->reorder_child($self->_cur_rate_lbl, $pos);
+    $self->_cur_rate_lbl->set_visible(1);
+  } else {
+    $self->_cur_rate_lbl->set_visible(0);
+  }
+}
+
+
+#called several times per second. TODO: once every audio second?
 sub update_clock{
   my ($self, $clock) = @{shift()};
   my $clock_label = $clock->get_child;

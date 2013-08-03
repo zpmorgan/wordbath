@@ -21,7 +21,7 @@ sub GST_LOG{
 
 sub BILLION{10**9}
 
-has rate => (
+has _rate => (
   isa => 'Num',
   is => 'rw',
   default => 1,
@@ -87,24 +87,29 @@ sub _build_pipeline{
   return $pipeline;
 }
 
+sub get_rate{
+  my $self = shift;
+  $self->_rate();
+}
+
 sub set_rate{
   my ($self, $rate) = @_;
   my $pos = $self->pos_ns();
   $pos = 0 unless $pos;
   GST_LOG ("Seeking: pos is $pos, new rate is $rate.");
   $self->pipeline->seek($rate, 'time', [qw/flush accurate/], set => $pos, none => -1);
-  $self->rate($rate);
+  $self->_rate($rate);
 }
 
 sub seek_sec{
   my ($self, $sec) = @_;
   GST_LOG "seeking to $sec.";
-  $self->pipeline->seek($self->rate, 'time', [qw/flush accurate/], set => $sec*10**9, none => -1);
+  $self->pipeline->seek($self->_rate, 'time', [qw/flush accurate/], set => $sec*10**9, none => -1);
 }
 sub shift_seconds{
   my ($self, $sec) = @_;
   GST_LOG "relative seek $sec seconds.";
-  $self->pipeline->seek($self->rate, 'time', [qw/flush accurate/],
+  $self->pipeline->seek($self->_rate, 'time', [qw/flush accurate/],
     set => $self->pos_ns + $sec*10**9,
     none => -1);
 }
