@@ -1543,8 +1543,8 @@ GtkIconView.view.cell:selected:hover {
 .menubar .menuitem {
 	border-radius: 0px;
 	border-width: 1px;
-	color: @bg_color;
-	text-shadow: 0 1 alpha (shade (@fg_color, 1.25), 0.4);
+	color: @fg_color;
+	text-shadow: 0 1 alpha (shade (@bg_color, 1.25), 0.4);
 	-unico-outer-stroke-width: 0px;
 }
 
@@ -1555,7 +1555,7 @@ GtkIconView.view.cell:selected:hover {
 	border-width: 0px;
 	border-style: solid;
 	background-image: none;
-	background-color: @transparent;
+	background-color: @bg_color;
 	-unico-border-stroke-style: none;
 	-unico-border-gradient: none;
 	-unico-outer-stroke-width: 0px;
