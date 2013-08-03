@@ -5,6 +5,8 @@ use Gtk3 -init;
 use FindBin '$Bin';
 use Pango;
 use File::Slurp;
+use lib 'lib';
+use Math::Roundeth;
 
 my $LOOP; # ?
 $LOOP = Glib::MainLoop->new();
@@ -138,10 +140,18 @@ sub _build_win{
     Glib::Timeout->add( 300, \&update_clock, [$self, $clock]);
   }
 
-  # theme.
+  $self->_load_styles();
+  $win->show_all();
+  return $win;
+}
+
+# css.
+sub _load_styles{
+  my $self = shift;
   my $p = Gtk3::CssProvider->new;
   my $css_filename = 'delorean-noir.css';
-  # my $file = Gtk3::g_file_new_for_path($css_filename);
+  # Says Perl: "What's a gfile?" How do I do this?
+  # my $file = Gtk3::gfile_new_for_path($css_filename);
   # $p->load_from_file($css_filename);
   my $cssdata = read_file('delorean-noir.css');
   $p->load_from_data($cssdata, -1);
@@ -149,9 +159,6 @@ sub _build_win{
   my $s = $d->get_default_screen;
   Gtk3::StyleContext::add_provider_for_screen (
     $s, $p, Gtk3::STYLE_PROVIDER_PRIORITY_USER);
-
-  $win->show_all();
-  return $win;
 }
 
 # example: 3700 -> "01:01:40"
@@ -246,8 +253,10 @@ sub _populate_ratbuttbar{
     $container->pack_start($_,0,0,0);
   }
   $self->_ratbutts(\@rate_buttons);
-  $self->_cur_rate_lbl(Gtk3::Label->new('foo'));
+  $self->_cur_rate_lbl(Gtk3::Label->new(''));
   $container->pack_start($self->_cur_rate_lbl, 0,0,0);
+  # this, aka 'hide' would do nothing because it'd be shown when show_all is called.
+  #$self->_cur_rate_lbl->set_visible(0);
 }
 
 sub _ratbutt_clicked{
@@ -255,12 +264,14 @@ sub _ratbutt_clicked{
   my ($self,$rate) = @$data;
   $self->player->set_rate($rate);
   $self->_text_widget->grab_focus();
+  $self->_cur_rate_lbl->set_visible(0);
 }
 
 sub _adjust_rate {
   my ($self, $adj) = @_;
   my $prev_rate = $self->player->get_rate();
   my $next_rate = $prev_rate + $adj;
+  $next_rate = nearest (.01, $next_rate);
   return if $next_rate < .03;
   $self->player->set_rate($next_rate);
   $self->_cur_rate_lbl->set_text(($next_rate * 100) . '%');
