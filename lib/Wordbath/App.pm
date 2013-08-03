@@ -137,17 +137,14 @@ sub _build_win{
     $vbox->pack_start($scrolled_text_stuff, 1,1,0);
     Glib::Timeout->add( 300, \&update_clock, [$self, $clock]);
   }
+
   # theme.
   my $p = Gtk3::CssProvider->new;
-  #$p->load_from_data ("*{font: Monospace 10; background: 
-  #  rgba(1%, 76%, 0%, 0.6);}", -1);
   my $css_filename = 'delorean-noir.css';
   # my $file = Gtk3::g_file_new_for_path($css_filename);
   # $p->load_from_file($css_filename);
   my $cssdata = read_file('delorean-noir.css');
-  # $cssdata =~ s|/\*.*\*/||g;
   $p->load_from_data($cssdata, -1);
-  say $p->to_string;
   my $d = Gtk3::Gdk::Display::get_default ();
   my $s = $d->get_default_screen;
   Gtk3::StyleContext::add_provider_for_screen (
