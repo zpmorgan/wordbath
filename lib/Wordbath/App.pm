@@ -155,7 +155,7 @@ sub _build_win{
 my $_method_hotkeys = [
   ['shift-mask','space', \&play_pause],
   ['control-mask','t', \&seek_text_from_audio],
-  ['control-mask','p', \&seek_audio_from_text],
+  ['control-mask','f', \&seek_audio_from_text],
   # gtk can't have arrow key accelerators?
   #['shift-mask','leftarrow', \&rel_seek, -2],
 ];
@@ -393,8 +393,10 @@ sub _buf{
 
 sub _insert_pseudo_anchor_here_and_now{
   my $self = shift;
-  my $buf = $self->buf;
-  my $new_mark = $buf->get_insert->copy;
+  my $buf = $self->_buf;
+  #my $new_mark = $buf->get_insert->copy;
+  my $iter = $buf->get_iter_at_mark($buf->get_insert);
+  my $new_mark = $buf->create_mark('foo', $iter, 0);;
   my $pos_ns = $self->player->pos_ns;
   my $pa = {
     mark => $new_mark,
@@ -444,7 +446,7 @@ sub _next_speaker_label_in_text{
   my $lst_lbl = $self->_last_tried_label;
   if ($lst_lbl and $txt =~ /\Q$lst_lbl\E:\s+$/){
     say 'replacing last speaker label.';
-    my $buf = $self->_text_widget->get_buffer;
+    my $buf = $self->_buf;
     my $iter = $buf->get_end_iter;
     my $end = $buf->get_end_iter;
     $iter->backward_chars (length $&);
@@ -466,7 +468,7 @@ sub _next_speaker_label_in_text{
 
 sub strip_ending_whitespace{
   my $self = shift;
-  my $buf = $self->_text_widget->get_buffer();
+  my $buf = $self->_buf;
   for(1..10){  #strip some whitespace, char by char
     my $end = $buf->get_end_iter();
     my $pen = $buf->get_end_iter();
@@ -481,7 +483,7 @@ sub _append_speaker_label{
   my $txt = $self->current_text;
   #return unless $next_lbl;
   say "appending speaker label $next_lbl";
-  my $buf = $self->_text_widget->get_buffer();
+  my $buf = $self->_buf;
   $self->strip_ending_whitespace();
   my $end = $buf->get_end_iter();
   $buf->insert($end, "\n\n$next_lbl: ");
@@ -491,7 +493,7 @@ sub _append_speaker_label{
 
 sub scroll_to_end{
   my $self = shift;
-  my $buf = $self->_text_widget->get_buffer;
+  my $buf = $self->_buf;
   my $end = $buf->get_end_iter();
   $buf->place_cursor($end);
   my $textmark = $buf->get_insert;
@@ -553,7 +555,7 @@ sub please_quit{
 
 sub current_text{
   my $self = shift;
-  my $buf = $self->_text_widget->get_buffer();
+  my $buf = $self->_buf;
   my ($start, $end) = $buf->get_bounds();
   $end->forward_char();
   my $txt = $buf->get_text($start, $end, 1);
