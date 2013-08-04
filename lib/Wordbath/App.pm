@@ -361,6 +361,9 @@ sub collect_labels{
   my $floating_spkr_lbl = qr|[^:\n]{1,40}|;
   push @labels, $1 if $txt =~ m|^($floating_spkr_lbl):\s|;
   push @labels, $1 while $txt =~ m|\n($floating_spkr_lbl):\s|g;
+  if (@labels >= 2){
+    unshift @labels, pop @labels; #penultimate first..
+  }
   unshift @labels, 'Interviewer';
   unshift @labels, 'Interviewee';
   my %seen;
