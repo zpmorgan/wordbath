@@ -376,14 +376,14 @@ sub _next_speaker_label_in_text{
   my $self = shift;
   my $txt = $self->current_text;
   my $lst_lbl = $self->_last_tried_label;
-  if ($lst_lbl and $txt =~ /$lst_lbl:\s+$/){
+  if ($lst_lbl and $txt =~ /\Q$lst_lbl\E:\s+$/){
     say 'replacing last speaker label.';
     my $buf = $self->_text_widget->get_buffer;
     my $iter = $buf->get_end_iter;
     my $end = $buf->get_end_iter;
     $iter->backward_chars (length $&);
     $buf->delete($iter,$end);
-    $txt =~ s/$lst_lbl:\s+$//;
+    $txt =~ s/\Q$lst_lbl\E:\s+$//;
     #replace last label with the next-best..
     $self->collect_labels unless $self->untried_labels;
     my $next_lbl = $self->_next_untried_label;
