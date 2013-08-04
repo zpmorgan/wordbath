@@ -400,9 +400,7 @@ sub strip_ending_whitespace{
   for(1..10){  #strip some whitespace, char by char
     my $end = $buf->get_end_iter();
     my $pen = $buf->get_end_iter();
-    say $buf->get_text($pen,$end, 0);
     $pen->backward_char;
-    say $buf->get_text($pen,$end, 0);
     last if ($buf->get_text($pen,$end, 0) =~ /\S/);
     $buf->delete($pen, $end);
   }
