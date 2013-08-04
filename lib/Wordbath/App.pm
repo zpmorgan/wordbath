@@ -51,6 +51,10 @@ has _audio_path => (
   isa => 'Str',
   is => 'rw',
 );
+has _accel_group => (
+  is => 'rw',
+  isa => 'Gtk3::AccelGroup',
+);
 
 sub _build_player{
   my $self = shift;
@@ -66,6 +70,8 @@ sub _build_win{
   $win->set_size_request(600,400);
   my $accel_group = Gtk3::AccelGroup->new;
   $win->add_accel_group($accel_group);
+  $self->_accel_group ($accel_group);
+  $self->_do_hotkeys();
 
   $win->signal_connect (destroy => sub { 
       $self->please_quit();
@@ -145,6 +151,31 @@ sub _build_win{
   return $win;
 }
 
+# Hotkey stuff.
+my $_method_hotkeys = [
+  ['shift-mask','space', \&play_pause],
+  # gtk can't have arrow key accelerators?
+  #['shift-mask','leftarrow', \&rel_seek, -2],
+];
+sub _do_hotkeys{
+  my ($self) = @_;
+  my $ag = $self->_accel_group;
+  for my $hk (@$_method_hotkeys){
+    my $keyval = Gtk3::Gdk::keyval_from_name($hk->[1]);
+    $ag->connect ($keyval, $hk->[0], 'visible', sub{$hk->[2]->($self, $hk->[3])} );
+  }
+}
+
+sub play_pause{
+  my $self = shift;
+  $self->player->toggle_play_state;
+}
+sub rel_seek{
+  my ($self, $secs) = @_;
+  $self->player->shift_seconds($secs);
+}
+
+
 # css.
 sub _load_styles{
   my $self = shift;
@@ -196,19 +227,14 @@ sub _click_1_to_2{
 sub _win_key_press{
   my ($w, $e, $self) = @_;
   DEBUG("state: ". $e->state .' ,  button: '. $e->keyval);
-  if($e->keyval == 32 && ($e->state * 'shift-mask')){
-    DEBUG('TOGGLE');
-    $self->player->toggle_play_state;
-    return 1;
-  }
   #shift+left. Backwards 1 sec
   if ($e->keyval == 65361 && ($e->state * 'shift-mask')){
-    $self->player->shift_seconds(-2);
+    $self->rel_seek(-2);
     return 1;
   }
   #shift+right. Forwards 1 sec
   if ($e->keyval == 65363 && ($e->state * 'shift-mask')){
-    $self->player->shift_seconds(2);
+    $self->rel_seek(2);
     return 1;
   }
   # F5
