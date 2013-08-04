@@ -338,6 +338,36 @@ sub _on_buf_changed{
   say "buf 'changed' event. Cursor: line $line, col $col";
 }
 
+has _pseuso_anchors => (
+  is => 'rw',
+  isa => 'ArrayRef',
+  default => sub{[]},
+  traits => ['Array'],
+  handles => {
+    _pseudo_anchor_push => 'push',
+  },
+);
+
+sub _buf{
+  my $self = shift;
+  my $txt = $self->_text_widget;
+  my $buf = $txt->get_buffer;
+  return $buf;
+}
+
+sub _insert_pseudo_anchor_here_and_now{
+  my $self = shift;
+  my $buf = $self->buf;
+  my $new_mark = $buf->get_insert->copy;
+  my $pos_ns = $self->player->pos_ns;
+  my $pa = {
+    mark => $new_mark,
+    pos_ns => $pos_ns,
+    time_placed => time,
+  };
+  $self->_pseudo_anchor_push($pa);
+}
+
 has _labels_to_try => (
   traits => ['Array'],
   isa => 'ArrayRef',
@@ -391,6 +421,7 @@ sub _next_speaker_label_in_text{
   }
   else {
     say 'collecting speaker label';
+    $self->_insert_pseudo_anchor_here_and_now();;
     $self->collect_labels;
     my $next_lbl = $self->_next_untried_label;
     $self->_append_speaker_label($next_lbl);
