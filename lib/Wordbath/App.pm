@@ -154,6 +154,8 @@ sub _build_win{
 # Hotkey stuff.
 my $_method_hotkeys = [
   ['shift-mask','space', \&play_pause],
+  ['control-mask','t', \&seek_text_from_audio],
+  ['control-mask','p', \&seek_audio_from_text],
   # gtk can't have arrow key accelerators?
   #['shift-mask','leftarrow', \&rel_seek, -2],
 ];
@@ -173,6 +175,14 @@ sub play_pause{
 sub rel_seek{
   my ($self, $secs) = @_;
   $self->player->shift_seconds($secs);
+}
+sub seek_text_from_audio{
+  my $self = shift;
+  say 'TODO: Move text cursor.';
+}
+sub seek_audio_from_text{
+  my $self = shift;
+  say 'TODO: seek audio position.';
 }
 
 
