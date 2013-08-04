@@ -338,18 +338,64 @@ sub _on_buf_changed{
   say "buf 'changed' event. Cursor: line $line, col $col";
 }
 
-sub _next_speaker_label_in_text{
+has _labels_to_try => (
+  traits => ['Array'],
+  isa => 'ArrayRef',
+  is => 'rw',
+  handles => {
+    untried_labels => 'count',
+    _next_untried_label => 'pop',
+  },
+);
+
+has _last_tried_label => (
+  isa => 'Str',
+  is => 'rw',
+);
+
+sub collect_labels{
   my $self = shift;
-  # extract all labels from text.
   my $txt = $self->current_text;
-  my $floating_spkr_lbl = qr|[^:\n]{1,40}|;
+  # extract all labels from text.
   my @labels;
+  my $floating_spkr_lbl = qr|[^:\n]{1,40}|;
   push @labels, $1 if $txt =~ m|^($floating_spkr_lbl):\s|;
   push @labels, $1 while $txt =~ m|\n($floating_spkr_lbl):\s|g;
-  my $next_lbl = $labels[-2];
-  #return unless $next_lbl;
-  $next_lbl //= $labels[-1] eq 'Interviewer' ? 'Interviewee' : 'Interviewer';
-  say "appending speaker label $next_lbl";
+  unshift @labels, 'Interviewer';
+  unshift @labels, 'Interviewee';
+  my %seen;
+  @labels = reverse grep {not $seen{$_}++} reverse @labels;
+  $self->_labels_to_try(\@labels);
+  say "collected labels: ".scalar @labels;
+}
+
+sub _next_speaker_label_in_text{
+  my $self = shift;
+  my $txt = $self->current_text;
+  my $lst_lbl = $self->_last_tried_label;
+  if ($lst_lbl and $txt =~ /$lst_lbl:\s+$/){
+    say 'replacing last speaker label.';
+    my $buf = $self->_text_widget->get_buffer;
+    my $iter = $buf->get_end_iter;
+    my $end = $buf->get_end_iter;
+    $iter->backward_chars (length $&);
+    $buf->delete($iter,$end);
+    $txt =~ s/$lst_lbl:\s+$//;
+    #replace last label with the next-best..
+    $self->collect_labels unless $self->untried_labels;
+    my $next_lbl = $self->_next_untried_label;
+    $self->_append_speaker_label($next_lbl);
+  }
+  else {
+    say 'collecting speaker label';
+    $self->collect_labels;
+    my $next_lbl = $self->_next_untried_label;
+    $self->_append_speaker_label($next_lbl);
+  }
+}
+
+sub strip_ending_whitespace{
+  my $self = shift;
   my $buf = $self->_text_widget->get_buffer();
   for(1..10){  #strip some whitespace, char by char
     my $end = $buf->get_end_iter();
@@ -360,14 +406,30 @@ sub _next_speaker_label_in_text{
     last if ($buf->get_text($pen,$end, 0) =~ /\S/);
     $buf->delete($pen, $end);
   }
-  my $newline_padding = "\n\n";
+}
+
+sub _append_speaker_label{
+  my ($self, $next_lbl) = @_;
+  my $txt = $self->current_text;
+  #return unless $next_lbl;
+  say "appending speaker label $next_lbl";
+  my $buf = $self->_text_widget->get_buffer();
+  $self->strip_ending_whitespace();
   my $end = $buf->get_end_iter();
-  $buf->insert($end, $newline_padding . $next_lbl . ': ');
-  $end = $buf->get_end_iter();
+  $buf->insert($end, "\n\n$next_lbl: ");
+  $self->scroll_to_end();
+  $self->_last_tried_label($next_lbl);
+}
+
+sub scroll_to_end{
+  my $self = shift;
+  my $buf = $self->_text_widget->get_buffer;
+  my $end = $buf->get_end_iter();
   $buf->place_cursor($end);
   my $textmark = $buf->get_insert;
   $self->_text_widget->scroll_mark_onscreen($textmark);
 }
+
 
 sub get_text_pos{
   my $self = shift;
