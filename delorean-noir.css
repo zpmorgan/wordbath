@@ -3166,6 +3166,9 @@ ECalendar.highlight {
     border-width: 0px;
 }
 
-GtkButton.miscolorized{
+.miscolorized{
   color: #118811;
+}
+GtkLabel.rate-lbl{
+  color: #111111;
 }

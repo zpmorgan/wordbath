@@ -300,10 +300,12 @@ sub _populate_ratbuttbar{
     $container->pack_start($_,0,0,0);
   }
   $self->_ratbutts(\@rate_buttons);
-  $self->_cur_rate_lbl(Gtk3::Label->new(''));
-  $container->pack_start($self->_cur_rate_lbl, 0,0,0);
-  # this, aka 'hide' would do nothing because it'd be shown when show_all is called.
-  #$self->_cur_rate_lbl->set_visible(0);
+  my $rate_lbl = Gtk3::Label->new('');
+  $rate_lbl->get_style_context->add_class("rate-lbl");
+  $self->_cur_rate_lbl($rate_lbl);
+  $container->pack_start($rate_lbl, 0,0,0);
+  my $rb = $self->_find_ratbutt_for_rate(1);
+  $self->_choose_miscolorized_ratbutt($rb) if defined $rb;
 }
 
 has _miscolorized_ratbutt => (
