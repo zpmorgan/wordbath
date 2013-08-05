@@ -270,9 +270,20 @@ my @audio_rate_options = (
   .25,.35,.45,.55,.65,.75,.85,1,1.25,1.5,1.75,2
 );
 
+# rate buttons. feel free to rename if you come up with a better system.
 has _ratbutts => (is => 'rw', isa => 'ArrayRef', default => sub{[]});
 has _cur_rate_lbl => (is => 'rw', isa => 'Gtk3::Label');
 has _ratbuttbar => (is => 'rw', isa => 'Gtk3::Box');
+
+sub _find_ratbutt_for_rate{
+  my ($self, $rate) = @_;
+  my $i;
+  for (0..$#audio_rate_options){
+    $i = $_ if $rate == $audio_rate_options[$_];
+  }
+  return unless defined $i;
+  return $self->_ratbutts->[$i];
+}
 
 sub _populate_ratbuttbar{
   my ($self, $container) = @_;
@@ -295,12 +306,40 @@ sub _populate_ratbuttbar{
   #$self->_cur_rate_lbl->set_visible(0);
 }
 
+has _miscolorized_ratbutt => (
+  is => 'rw',
+  isa => 'Gtk3::Button',
+  clearer => '_lahdskajshflkg',
+);
+sub _clear_miscolorized_ratbutt{
+  my ($self) = @_;
+  my $rb = $self->_miscolorized_ratbutt;
+  return unless $rb;
+  #$rb->get_style_context->remove_class('miscolorized');
+  $rb->get_style_context->restore;
+  $self->_lahdskajshflkg();
+  #why do I need these? shouldn't adding a class do it?
+  $rb->hide;
+  $rb->show;
+}
+sub _choose_miscolorized_ratbutt{
+  my ($self,$rb) = @_;
+  $self->_clear_miscolorized_ratbutt if $self->_miscolorized_ratbutt;
+  $rb->get_style_context->save;
+  $rb->get_style_context->add_class("miscolorized");
+  $self->_miscolorized_ratbutt($rb);
+  $rb->hide;
+  $rb->show;
+  #$rb->queue_draw;
+}
+
 sub _ratbutt_clicked{
   my ($wodget,$data) = @_;
   my ($self,$rate) = @$data;
   $self->player->set_rate($rate);
   $self->_text_widget->grab_focus();
   $self->_cur_rate_lbl->set_visible(0);
+  $self->_choose_miscolorized_ratbutt($wodget);
 }
 
 sub _adjust_rate {
@@ -329,6 +368,9 @@ sub _adjust_rate {
   } else {
     $self->_cur_rate_lbl->set_visible(0);
   }
+  $self->_clear_miscolorized_ratbutt();
+  my $rb = $self->_find_ratbutt_for_rate($next_rate);
+  $self->_choose_miscolorized_ratbutt($rb) if defined $rb;
 }
 
 

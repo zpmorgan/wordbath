@@ -3166,3 +3166,6 @@ ECalendar.highlight {
     border-width: 0px;
 }
 
+GtkButton.miscolorized{
+  color: #118811;
+}
