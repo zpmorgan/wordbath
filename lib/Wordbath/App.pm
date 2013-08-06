@@ -35,6 +35,17 @@ has _txt_pos_lbl => (
   is => 'rw',
 );
 
+has _speller_widget => (
+  isa => 'Object',
+  is => 'ro',
+  builder => '_build_speller_widget',
+);
+has _slabeler_widget => (
+  isa => 'Object',
+  is => 'ro',
+  builder => '_build_slabeler_widget',
+);
+
 has _natural_seekbar_value => (
   isa => 'Num',
   is => 'rw',
@@ -142,7 +153,17 @@ sub _build_win{
     $vbox->pack_start($menubar, 0,0,0);
     $vbox->pack_start($ratbuttbar, 0,0,0);
     $vbox->pack_start($seekbar, 0,0,0);
-    $vbox->pack_start($scrolled_text_stuff, 1,1,0);
+
+    my $text_and_sidebar = Gtk3::Box->new('horizontal', 3);
+    {
+      my $sidebar = Gtk3::Box->new('vertical', 3);
+      $text_and_sidebar->pack_start($scrolled_text_stuff, 1,1,0);
+      $text_and_sidebar->pack_start($sidebar, 0,0,0);
+      $sidebar->pack_start($self->_speller_widget, 0,0,0);
+      $sidebar->pack_start($self->_slabeler_widget, 0,0,0);
+    }
+
+    $vbox->pack_start($text_and_sidebar, 1,1,0);
     Glib::Timeout->add( 300, \&update_clock, [$self, $clock]);
   }
 
@@ -249,7 +270,7 @@ sub _win_key_press{
   }
   # F5
   if ($e->keyval == 65474){
-    $self->_next_speaker_label_in_text;
+    $self->_next_slabel_in_text;
     return 1;
   }
   # F7
@@ -450,44 +471,53 @@ sub _insert_pseudo_anchor_here_and_now{
   $self->_pseudo_anchor_push($pa);
 }
 
-has _labels_to_try => (
+sub _build_speller_widget{
+  my $self = shift;
+  return Gtk3::Label->new('REMINDER: SPELL CORRECTLY');
+}
+sub _build_slabeler_widget{
+  my $self = shift;
+  return Gtk3::Label->new('SLABELER');
+}
+
+has _slabels_to_try => (
   traits => ['Array'],
   isa => 'ArrayRef',
   is => 'rw',
   handles => {
-    untried_labels => 'count',
-    _next_untried_label => 'pop',
+    _untried_slabels => 'count',
+    _next_untried_slabel => 'pop',
   },
 );
 
-has _last_tried_label => (
+has _last_tried_slabel => (
   isa => 'Str',
   is => 'rw',
 );
 
-sub collect_labels{
+sub collect_slabels{
   my $self = shift;
   my $txt = $self->current_text;
   # extract all labels from text.
-  my @labels;
+  my @slabels;
   my $floating_spkr_lbl = qr|[^:\n]{1,40}|;
-  push @labels, $1 if $txt =~ m|^($floating_spkr_lbl):\s|;
-  push @labels, $1 while $txt =~ m|\n($floating_spkr_lbl):\s|g;
-  if (@labels >= 2){
-    unshift @labels, pop @labels; #penultimate first..
+  push @slabels, $1 if $txt =~ m|^($floating_spkr_lbl):\s|;
+  push @slabels, $1 while $txt =~ m|\n($floating_spkr_lbl):\s|g;
+  if (@slabels >= 2){
+    unshift @slabels, pop @slabels; #penultimate first..
   }
-  unshift @labels, 'Interviewer';
-  unshift @labels, 'Interviewee';
+  unshift @slabels, 'Interviewer';
+  unshift @slabels, 'Interviewee';
   my %seen;
-  @labels = reverse grep {not $seen{$_}++} reverse @labels;
-  $self->_labels_to_try(\@labels);
-  say "collected labels: ".scalar @labels;
+  @slabels = reverse grep {not $seen{$_}++} reverse @slabels;
+  $self->_slabels_to_try(\@slabels);
+  say "collected labels: ".scalar @slabels;
 }
 
-sub _next_speaker_label_in_text{
+sub _next_slabel_in_text{
   my $self = shift;
   my $txt = $self->current_text;
-  my $lst_lbl = $self->_last_tried_label;
+  my $lst_lbl = $self->_last_tried_slabel;
   if ($lst_lbl and $txt =~ /\Q$lst_lbl\E:\s+$/){
     say 'replacing last speaker label.';
     my $buf = $self->_buf;
@@ -497,16 +527,16 @@ sub _next_speaker_label_in_text{
     $buf->delete($iter,$end);
     $txt =~ s/\Q$lst_lbl\E:\s+$//;
     #replace last label with the next-best..
-    $self->collect_labels unless $self->untried_labels;
-    my $next_lbl = $self->_next_untried_label;
-    $self->_append_speaker_label($next_lbl);
+    $self->collect_slabels unless $self->_untried_slabels;
+    my $next_lbl = $self->_next_untried_slabel;
+    $self->_append_slabel($next_lbl);
   }
   else {
     say 'collecting speaker label';
     $self->_insert_pseudo_anchor_here_and_now();;
-    $self->collect_labels;
-    my $next_lbl = $self->_next_untried_label;
-    $self->_append_speaker_label($next_lbl);
+    $self->collect_slabels;
+    my $next_lbl = $self->_next_untried_slabel;
+    $self->_append_slabel($next_lbl);
   }
 }
 
@@ -522,7 +552,7 @@ sub strip_ending_whitespace{
   }
 }
 
-sub _append_speaker_label{
+sub _append_slabel{
   my ($self, $next_lbl) = @_;
   my $txt = $self->current_text;
   #return unless $next_lbl;
@@ -532,7 +562,7 @@ sub _append_speaker_label{
   my $end = $buf->get_end_iter();
   $buf->insert($end, "\n\n$next_lbl: ");
   $self->scroll_to_end();
-  $self->_last_tried_label($next_lbl);
+  $self->_last_tried_slabel($next_lbl);
 }
 
 sub scroll_to_end{
