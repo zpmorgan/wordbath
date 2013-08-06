@@ -157,10 +157,14 @@ sub _build_win{
     my $text_and_sidebar = Gtk3::Box->new('horizontal', 3);
     {
       my $sidebar = Gtk3::Box->new('vertical', 3);
+      $sidebar->get_style_context->add_class("sidebar");
       $text_and_sidebar->pack_start($scrolled_text_stuff, 1,1,0);
       $text_and_sidebar->pack_start($sidebar, 0,0,0);
       $sidebar->pack_start($self->_speller_widget, 0,0,0);
       $sidebar->pack_start($self->_slabeler_widget, 0,0,0);
+      #$_->get_style_context->remove_class("background")
+      #  for ($sidebar, $self->_speller_widget, $self->_slabeler_widget);
+      $self->_slabeler_widget->get_style_context->add_class("sidebar");
     }
 
     $vbox->pack_start($text_and_sidebar, 1,1,0);
@@ -338,10 +342,9 @@ sub _clear_miscolorized_ratbutt{
   my ($self) = @_;
   my $rb = $self->_miscolorized_ratbutt;
   return unless $rb;
-  #$rb->get_style_context->remove_class('miscolorized');
   $rb->get_style_context->restore;
   $self->_lahdskajshflkg();
-  #why do I need these? shouldn't adding a class do it?
+  #why do I need these? shouldn't adding a class cause it to re-render?
   $rb->hide;
   $rb->show;
 }
@@ -473,7 +476,14 @@ sub _insert_pseudo_anchor_here_and_now{
 
 sub _build_speller_widget{
   my $self = shift;
-  return Gtk3::Label->new('REMINDER: SPELL CORRECTLY');
+  my $vb = Gtk3::Box->new('vertical',3);
+  my $spell_label = Gtk3::Label->new('REMINDER: SPELL CORRECTLY');
+  my $spell_label2= Gtk3::Label->new('DOIT!');
+  #$_->get_style_context->remove_class("background")
+  #  for ($vb,$spell_label);
+  $vb->pack_start($spell_label,0,0,0);
+  $vb->pack_end($spell_label2,0,0,0);
+  return $vb;
 }
 sub _build_slabeler_widget{
   my $self = shift;

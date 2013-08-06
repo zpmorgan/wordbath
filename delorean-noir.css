@@ -3172,3 +3172,17 @@ ECalendar.highlight {
 GtkLabel.rate-lbl{
   color: #111111;
 }
+.sidebar ,
+.sidebar *,
+.sidebar * *,
+.sidebar * * *{
+  color: #00ff00;
+  border-color: #111;
+  border-radius: 3px;
+  border-style: solid;
+  border-width: 5px;
+  padding: 2px;
+	background-color: @transparent;
+	background-image: none;
+}
+
