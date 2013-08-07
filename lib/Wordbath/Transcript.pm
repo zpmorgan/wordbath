@@ -225,7 +225,11 @@ sub _append_slabel{
   my $buf = $self->_buf;
   $self->strip_ending_whitespace();
   my $end = $buf->get_end_iter();
-  $buf->insert($end, "\n\n$next_lbl: ");
+
+  my $append_text = "";
+  $append_text .= "\n\n" if $end->copy->backward_char; #at the beginning?
+  $append_text .= "$next_lbl: ";
+  $buf->insert($end, $append_text);
   $self->scroll_to_end();
   $self->_last_tried_slabel($next_lbl);
 }
