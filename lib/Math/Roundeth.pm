@@ -38,6 +38,10 @@ sub nearest {
      else { $targ * POSIX::ceil(($_ - $Math::Roundeth::half * $targ) / $targ); }
  } @_;
 
+ @res = map{"$_"} @res;
+ # without this string conversion, .35 != nearest(.01,.35)
+ # That may still be the case depending on how your platform handles things.
+
  return (wantarray) ? @res : $res[0];
 }
 
