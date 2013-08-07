@@ -260,7 +260,7 @@ sub _win_key_press{
   }
   # F5
   if ($e->keyval == 65474){
-    $self->_next_slabel_in_text;
+    $self->transcript->next_slabel_in_text;
     return 1;
   }
   # F7
@@ -430,99 +430,6 @@ sub _build_slabeler_widget{
   return Gtk3::Label->new('SLABELER');
 }
 
-has _slabels_to_try => (
-  traits => ['Array'],
-  isa => 'ArrayRef',
-  is => 'rw',
-  handles => {
-    _untried_slabels => 'count',
-    _next_untried_slabel => 'pop',
-  },
-);
-
-has _last_tried_slabel => (
-  isa => 'Str',
-  is => 'rw',
-);
-
-sub collect_slabels{
-  my $self = shift;
-  my $txt = $self->current_text;
-  # extract all labels from text.
-  my @slabels;
-  my $floating_spkr_lbl = qr|[^:\n]{1,40}|;
-  push @slabels, $1 if $txt =~ m|^($floating_spkr_lbl):\s|;
-  push @slabels, $1 while $txt =~ m|\n($floating_spkr_lbl):\s|g;
-  if (@slabels >= 2){
-    unshift @slabels, pop @slabels; #penultimate first..
-  }
-  unshift @slabels, 'Interviewer';
-  unshift @slabels, 'Interviewee';
-  my %seen;
-  @slabels = reverse grep {not $seen{$_}++} reverse @slabels;
-  $self->_slabels_to_try(\@slabels);
-  say "collected labels: ".scalar @slabels;
-}
-
-sub _next_slabel_in_text{
-  my $self = shift;
-  my $txt = $self->current_text;
-  my $lst_lbl = $self->_last_tried_slabel;
-  if ($lst_lbl and $txt =~ /\Q$lst_lbl\E:\s+$/){
-    say 'replacing last speaker label.';
-    my $buf = $self->_buf;
-    my $iter = $buf->get_end_iter;
-    my $end = $buf->get_end_iter;
-    $iter->backward_chars (length $&);
-    $buf->delete($iter,$end);
-    $txt =~ s/\Q$lst_lbl\E:\s+$//;
-    #replace last label with the next-best..
-    $self->collect_slabels unless $self->_untried_slabels;
-    my $next_lbl = $self->_next_untried_slabel;
-    $self->_append_slabel($next_lbl);
-  }
-  else {
-    say 'collecting speaker label';
-    $self->_insert_pseudo_anchor_here_and_now();;
-    $self->collect_slabels;
-    my $next_lbl = $self->_next_untried_slabel;
-    $self->_append_slabel($next_lbl);
-  }
-}
-
-sub strip_ending_whitespace{
-  my $self = shift;
-  my $buf = $self->_buf;
-  for(1..10){  #strip some whitespace, char by char
-    my $end = $buf->get_end_iter();
-    my $pen = $buf->get_end_iter();
-    $pen->backward_char;
-    last if ($buf->get_text($pen,$end, 0) =~ /\S/);
-    $buf->delete($pen, $end);
-  }
-}
-
-sub _append_slabel{
-  my ($self, $next_lbl) = @_;
-  my $txt = $self->current_text;
-  #return unless $next_lbl;
-  say "appending speaker label $next_lbl";
-  my $buf = $self->_buf;
-  $self->strip_ending_whitespace();
-  my $end = $buf->get_end_iter();
-  $buf->insert($end, "\n\n$next_lbl: ");
-  $self->scroll_to_end();
-  $self->_last_tried_slabel($next_lbl);
-}
-
-sub scroll_to_end{
-  my $self = shift;
-  my $buf = $self->_buf;
-  my $end = $buf->get_end_iter();
-  $buf->place_cursor($end);
-  my $textmark = $buf->get_insert;
-  $self->_text_widget->scroll_mark_onscreen($textmark);
-}
 
 sub run{
   my $self = shift;
