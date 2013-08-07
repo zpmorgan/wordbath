@@ -3169,6 +3169,10 @@ ECalendar.highlight {
 .miscolorized{
   color: #118811;
 }
+.miscolorized *{
+  color: inherit;
+}
+
 GtkLabel.rate-lbl{
   color: #111111;
 }
