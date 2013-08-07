@@ -7,6 +7,7 @@ use Pango;
 use File::Slurp;
 use lib 'lib';
 use Math::Roundeth;
+use Wordbath::Speller;
 
 my $LOOP; # ?
 $LOOP = Glib::MainLoop->new();
@@ -35,11 +36,12 @@ has _txt_pos_lbl => (
   is => 'rw',
 );
 
-has _speller_widget => (
-  isa => 'Object',
+has _speller => (
+  isa => 'Wordbath::Speller',
   is => 'ro',
-  builder => '_build_speller_widget',
+  builder => '_build_speller',
 );
+
 has _slabeler_widget => (
   isa => 'Object',
   is => 'ro',
@@ -160,10 +162,10 @@ sub _build_win{
       $sidebar->get_style_context->add_class("sidebar");
       $text_and_sidebar->pack_start($scrolled_text_stuff, 1,1,0);
       $text_and_sidebar->pack_start($sidebar, 0,0,0);
-      $sidebar->pack_start($self->_speller_widget, 0,0,0);
+      $sidebar->pack_start($self->_speller->widget, 0,0,0);
       $sidebar->pack_start($self->_slabeler_widget, 0,0,0);
       #$_->get_style_context->remove_class("background")
-      #  for ($sidebar, $self->_speller_widget, $self->_slabeler_widget);
+      #  for ($sidebar, $self->_speller->widget, $self->_slabeler_widget);
       $self->_slabeler_widget->get_style_context->add_class("sidebar");
     }
 
@@ -474,7 +476,13 @@ sub _insert_pseudo_anchor_here_and_now{
   $self->_pseudo_anchor_push($pa);
 }
 
-sub _build_speller_widget{
+sub _build_speller{
+  my $self = shift;
+  my $speller = Wordbath::Speller->new();
+  return $speller;
+}
+
+sub _build_speller_widget_FOO{
   my $self = shift;
   my $vb = Gtk3::Box->new('vertical',3);
   my $spell_label = Gtk3::Label->new('REMINDER: SPELL CORRECTLY');
