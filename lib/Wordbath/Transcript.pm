@@ -46,13 +46,6 @@ sub _build_scrolled_widget{
   return $scrolled;
 }
 
-sub _buf{
-  my $self = shift;
-  my $txt = $self->_text_widget;
-  my $buf = $txt->get_buffer;
-  return $buf;
-}
-
 sub current_text{
   my $self = shift;
   my $buf = $self->_buf;
