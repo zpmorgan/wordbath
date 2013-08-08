@@ -3,8 +3,9 @@ use Moose::Role;
 use Modern::Perl;
 use Array::Compare;
 
-use Moose::Exporter;
+# This role has only been tested with singletons.
 
+use Moose::Exporter;
 Moose::Exporter->setup_import_methods(
   with_meta => [ 'signal' ],
 );
@@ -14,7 +15,8 @@ Moose::Exporter->setup_import_methods(
 has _signals => (
   is => 'ro',
   isa => 'HashRef',
-  default => sub{{pos_change => [],}},
+  default => sub{{}},
+  #default => sub{{pos_change => [],}},
 );
 has _last_blurps =>(
   is => 'ro',
@@ -22,10 +24,16 @@ has _last_blurps =>(
   default => sub{{}},
 );
 
+# Only try to read this if you understand Moose.
+# 'signal' is a keyword, callable from classes that use this role.
 sub signal {
   my $meta = shift;
-  my $sigs_attr = $meta->get_attribute('_signals')
-  die $sigs_attr;
+  my $sig_name = shift;
+  my $sigs_attr = $meta->get_attribute('_signals');
+  my $sig_attr_default = $sigs_attr->{default}->();
+  die "signal($sig_name) redefined." if $sig_attr_default->{$sig_name};
+  $sig_attr_default->{$sig_name} = [];
+  $sigs_attr->{default} = sub{$sig_attr_default};
 }
 
 sub whenever {

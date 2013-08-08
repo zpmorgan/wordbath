@@ -4,7 +4,7 @@ use Modern::Perl;
 
 with 'Wordbath::Whenever';
 Wordbath::Whenever->import();;
-signal 'pos_change';
+signal ('pos_change');
 
 #
 # This is intended to serve as the model for the document, and provide
