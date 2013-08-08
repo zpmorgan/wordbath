@@ -236,7 +236,7 @@ sub _seekbar_saught{
   return if ($value == $self->_natural_seekbar_value);
   $self->_natural_seekbar_value($value);
   $self->player->seek_sec($value);
-  $self->_text_widget->grab_focus();
+  $self->transcript->grab_focus();
 }
 sub _click_1_to_2{
   my ($widget, $event) = @_;
