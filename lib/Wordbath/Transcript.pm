@@ -82,12 +82,18 @@ sub _on_buf_changed{
   say "buf 'changed' event. Cursor: line $line, col $col";
 }
 
+use Array::Compare;
 # $data will be the first argument,
 #  so the handler can be a method of whatever $data is.
 has _signals => (
-  is => 'rw',
+  is => 'ro',
   isa => 'HashRef',
   default => sub{{pos_change => [],}},
+);
+has _last_blurps =>(
+  is => 'ro',
+  isa => 'HashRef',
+  default => sub{{}},
 );
 sub whenever {
   my ($self, $signal_name, $cb, $data) = @_;
@@ -108,6 +114,7 @@ sub blurp{
     my $data = $handler->{data};
     $cb->($data, @_);
   }
+  $self->_last_blurps->{$signal_name} = [@_];
 }
 # return number of signal handlers for a specific signal.
 sub blurps{
@@ -115,10 +122,30 @@ sub blurps{
   my $sigs = $self->_signals->{$signal_name};
   return scalar @$sigs
 }
+#returns an arrayref. Or undef if this signal hasn't been blurped.
+sub last_blurp{
+  my ($self, $signal_name) = @_;
+  return $self->_last_blurps->{$signal_name};
+}
+#takes a signal & arrayref.
+sub last_blurp_matches{
+  my ($self, $signal_name, $blurp) = @_;
+  die "no such signal $signal_name"
+     unless $self->blurps($signal_name);
+  my $last_blurp = $self->last_blurp($signal_name);
+  return 0 unless defined $last_blurp;
+  my $comp = Array::Compare->new();
+  return $comp->simple_compare ($blurp, $last_blurp);
+}
 sub _on_pos_change{
   my $self = shift;
+  #use Array::Compare.
   return unless $self->blurps('pos_change');
   my ($line, $col) = $self->get_text_pos();
+
+  #only blurp on changes. It's a change signal.
+  return if $self->last_blurp_matches(pos_change => [$line,$col]);
+
   $self->blurp(pos_change => $line,$col);
 }
 
