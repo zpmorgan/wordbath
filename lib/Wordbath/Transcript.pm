@@ -82,22 +82,44 @@ sub _on_buf_changed{
   say "buf 'changed' event. Cursor: line $line, col $col";
 }
 
+# $data will be the first argument,
+#  so the handler can be a method of whatever $data is.
 has _signals => (
   is => 'rw',
   isa => 'HashRef',
-  default => sub{{}},
+  default => sub{{pos_change => [],}},
 );
+sub whenever {
+  my ($self, $signal_name, $cb, $data) = @_;
+  my $sigs = $self->_signals->{$signal_name};
+  return unless $sigs;
+  my $handler = {cb => $cb, data => $data};
+  push @$sigs, $handler
+}
+sub blurp{
+  my $self = shift;
+  my $signal_name = shift;
+  my $sigs = $self->_signals->{$signal_name};
+  die "no such sig: $signal_name" unless $sigs;
+  # @_ now contains signal-specific stuff,
+  #  like cursor position or whatever.
+  for my $handler (@$sigs){
+    my $cb   = $handler->{cb};
+    my $data = $handler->{data};
+    $cb->($data, @_);
+  }
+}
+# return number of signal handlers for a specific signal.
+sub blurps{
+  my ($self, $signal_name) = @_;
+  my $sigs = $self->_signals->{$signal_name};
+  return scalar @$sigs
+}
 sub _on_pos_change{
   my $self = shift;
-  my $sig = $self->_signals->{pos_change};
-  return unless $sig;
+  return unless $self->blurps('pos_change');
   my ($line, $col) = $self->get_text_pos();
-  $sig->{cb}->($sig->{data}, $line, $col);
-}
-sub set_on_pos_change_cb{
-  my ($self, $cb, $app) = @_;
-  my ($line, $col) = $self->get_text_pos();
-  $self->_signals->{pos_change} = {cb => $cb, data => $app};
+  $self->blurp(pos_change => $line,$col);
 }
 
 

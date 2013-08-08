@@ -406,9 +406,9 @@ sub update_clock{
 
 sub _build_tsv{
   my $self = shift;
-  my $tsv = Wordbath::Transcript->new();
-  $tsv->set_on_pos_change_cb(\&update_txt_pos_lbl, $self);
-  return $tsv
+  my $transcript = Wordbath::Transcript->new();
+  $transcript->whenever(pos_change => \&update_txt_pos_lbl, $self);
+  return $transcript;
 }
 
 #called by callbacks on textview whenever text or cursor changes
