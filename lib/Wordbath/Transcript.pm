@@ -8,6 +8,7 @@ use Modern::Perl;
 #
 # Maybe this should've subclassed textview, but it's encompassed
 # in a scrolled window, and it uses Moose.
+# Maybe the view & model should be separated next
 
 has scrolled_widget => (
   is => 'rw',
@@ -131,7 +132,7 @@ sub last_blurp{
 sub last_blurp_matches{
   my ($self, $signal_name, $blurp) = @_;
   die "no such signal $signal_name"
-     unless $self->blurps($signal_name);
+     unless $self->_signals->{$signal_name};
   my $last_blurp = $self->last_blurp($signal_name);
   return 0 unless defined $last_blurp;
   my $comp = Array::Compare->new();
@@ -139,7 +140,6 @@ sub last_blurp_matches{
 }
 sub _on_pos_change{
   my $self = shift;
-  #use Array::Compare.
   return unless $self->blurps('pos_change');
   my ($line, $col) = $self->get_text_pos();
 
