@@ -23,6 +23,7 @@ if ($location){
     } else {
       use LWP::Simple;
       my $data = get $location;
+      die 'audio download failed.' unless defined($data);
 
       use File::Slurp;
       write_file( "$workdir/$file", $data);
