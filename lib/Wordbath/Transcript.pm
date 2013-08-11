@@ -6,7 +6,10 @@ with 'Wordbath::Whenever';
 Wordbath::Whenever->import();;
 signal ('pos_change');
 
-#
+#signal ('word-changed');
+#signal ('word-entered-focus');
+#signal ('word-left-focus');
+
 # This is intended to serve as the model for the document, and provide
 # the scrolled text widget.
 #
@@ -234,5 +237,149 @@ sub scroll_to_end{
   $self->_text_widget->scroll_mark_onscreen($textmark);
 }
 
+has speller=> (
+  is => 'ro',
+  isa => 'Wordbath::Speller',
+  builder => '_build_speller',
+  lazy => 1,
+);
+sub _build_speller{
+  my $self = shift;
+  my $sc = Wordbath::Speller->new();
+  #$sc->whenever('sp-replace-one' => \&spell_replace_all_words, $self);
+  #$sc->whenever('sp-replace-all' => \&spell_replace_one_word, $self);
+};
+
+has _deferred_start => (
+  is => 'rw',
+);
+has _deferred_end => (
+  is => 'rw',
+);
+
+# these should be what hunspell doesn't break on.
+my $word_chars= qr/\p{Alpha}|\d|'/;
+
+# There's some duplication here. I declare it okay.
+sub _at_word_begin{
+  my ($buf,$iter) = @_;
+  my $prevc = $iter->copy;
+  $prevc->backward_char;
+  my $char = $buf->get_text($prevc, $iter, 1);
+  return 0 if ($char =~ $word_chars); #false if word char to left, 
+  my $nextc = $iter->copy;
+  $nextc->forward_char;
+  $char = $buf->get_text($iter, $nextc, 1);
+  return 0 if ($char !~ $word_chars); #false if not word char to right.
+  return 1;
+}
+sub _at_word_end{
+  my ($buf,$iter) = @_;
+  my $prevc = $iter->copy;
+  $prevc->backward_char;
+  my $char = $buf->get_text($prevc, $iter, 1);
+  return 0 if ($char !~ $word_chars); #false if space to left.
+  my $nextc = $iter->copy;
+  $nextc->forward_char;
+  $char = $buf->get_text($iter,$nextc, 1);
+  return 1 if $char eq '';
+  return 0 if ($char =~ $word_chars); #false if character to right.
+  return 1;
+}
+sub _inside_word{
+  my ($buf,$iter) = @_;
+  my $prevc = $iter->copy;
+  $prevc->backward_char;
+  my $char = $buf->get_text($prevc, $iter, 1);
+  return 0 unless ($char =~ $word_chars);
+  my $nextc = $iter->copy;
+  $nextc->forward_char;
+  $char = $buf->get_text($iter, $nextc, 1);
+  return 0 unless ($char =~ $word_chars);
+  return 1;
+}
+
+sub _b_to_word_begin{
+  my ($buf,$iter) = @_;
+  $iter->backward_char;
+  while(!_at_word_begin($buf,$iter)){
+    $iter->backward_char;
+    return 0 if $iter->equal($buf->get_start_iter());
+  }
+  return 1
+}
+# return true if there's anoter word, false otherwise.
+sub _f_to_word_begin{
+  my ($buf,$iter) = @_;
+  $iter->forward_char;
+  while(!_at_word_begin($buf,$iter)){
+    $iter->forward_char;
+    return 0 if $iter->equal($buf->get_end_iter());
+  }
+  return 1
+}
+sub _f_to_word_end{
+  my ($buf,$iter) = @_;
+  $iter->forward_char;
+  while(!_at_word_end($buf,$iter)){
+    $iter->forward_char;
+  }
+}
+
+sub _ranges_overlap{
+  my ($s1,$e1,$s2,$e2) = @_;
+  return 0 if $s1->compare($e2) == 1;
+  return 0 if $s2->compare($e1) == 1;
+  return 1;
+}
+
+sub spellcheck_range {
+  my ($self, $range_start, $range_end) = @_;
+  # expand range to encompass words partially overlapping range.
+  my $buf = $self->_buf;
+  my $start = $range_start->copy;
+  #my $end= $range_end->copy;
+  if (!_at_word_begin($buf,$start)){
+    if (_inside_word($buf,$start)){
+      _b_to_word_begin($buf,$start);
+    } else { #between 2 non-word characters.
+      _f_to_word_begin($buf,$start);
+    }
+  }
+  #if (!_inside_word($buf,$end)){
+  #  _f_to_word_end($buf,$end);
+  #}
+  #check each word.
+  while(1){
+    if (!_at_word_begin($buf,$start)){
+      last unless _f_to_word_begin($buf,$start);
+    }
+    my $w_end = $start->copy;
+    _f_to_word_end($buf,$w_end);
+    last unless _ranges_overlap($start,$w_end, $range_start,$range_end);
+    my $word_txt = $buf->get_text($start,$w_end,1);
+    #warn $word_txt;
+    #die if $word_txt eq ' ';
+    $self->_check_word_spelling($word_txt,$start->copy,$w_end->copy);
+    $start = $w_end;
+  }
+}
+sub spellcheck_all{
+  my $self = shift;
+  my ($start, $end) = $self->_buf->get_bounds();
+  $self->spellcheck_range($start,$end);
+}
+
+sub _check_word_spelling{
+  my ($self, $word_txt,$start,$end) = @_;
+  my $res = $self->speller->check_word ($word_txt);
+  #say "Word: $word_txt. Res: $res."
+}
+sub spell_replace_all_words{
+  my ($self, $incorrect, $correct, $instances) = @_;
+}
+sub spell_replace_one_word{
+  my ($self, $incorrect, $correct, $start,$end) = @_;
+}
 1;
 

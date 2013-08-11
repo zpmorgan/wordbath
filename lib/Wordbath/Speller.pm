@@ -9,6 +9,13 @@ has widget => (
   is => 'ro',
 );
 
+has check_all_button => (
+  isa => 'Gtk3::Button',
+  is => 'ro',
+  lazy => 1,
+  builder => '_build_checkall_button',
+);
+
 has _missp_ls => (
   is => 'ro',
   isa => 'Gtk3::ListStore',
@@ -38,18 +45,22 @@ sub _build_widget{
   my $self = shift;
   my $vb = Gtk3::Box->new('vertical',3);
   my $spell_label = Gtk3::Label->new('REMINDER: SPELL CORRECTLY');
-  my $spell_label2= Gtk3::Label->new('DOIT! ' . $self->_check_word('12ad'));
+  #my $spell_label2= Gtk3::Label->new('DOIT! ' . $self->check_word('12ad'));
   #$_->get_style_context->remove_class("background")
   #  for ($vb,$spell_label);
+  $vb->pack_start($self->check_all_button, 0,0,0);
+  #$vb->pack_start($spell_label,0,0,0);
   $vb->pack_end($self->_missp_view,0,0,0);
   $vb->pack_end($self->_candidates_view,0,0,0);
-  $vb->pack_start($spell_label,0,0,0);
-  $vb->pack_end($spell_label2,0,0,0);
+  $vb->pack_end($spell_label,0,0,0);
   for(qw/foo bar baz/){
     my $iter = $self->_missp_ls->append;
     $self->_missp_ls->set($iter, 0, $_);
   }
   return $vb;
+}
+sub _build_checkall_button{
+  return Gtk3::Button->new('Spell-check all');
 }
 
 sub _build_candidates_ls{
@@ -90,7 +101,7 @@ else {
 }
 
 
-sub _check_word{
+sub check_word{
   my ($self, $word) = @_;
   if ($word =~ /\s/){
     die "please dont pollute spell checker with whitespace. ($word)";
