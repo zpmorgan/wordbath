@@ -472,7 +472,7 @@ sub save_text{
   #make sure there's a newline at the end?
   $txt .= "\n" unless $txt =~ m|\n$|;
 
-  write_file($file_path, $txt);
+  write_file($file_path, {binmode => ':utf8'}, $txt);
   say "wrote to $file_path";
 }
 sub _text_file_path{
