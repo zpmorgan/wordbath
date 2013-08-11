@@ -29,6 +29,7 @@ has transcript => (
   isa => 'Wordbath::Transcript',
   is => 'rw',
   builder => '_build_tsv',
+  lazy => 1,
 );
 has _seekbar => (
   isa => 'Gtk3::Scale',
@@ -422,7 +423,8 @@ sub update_txt_pos_lbl{
 
 sub _build_speller{
   my $self = shift;
-  my $speller = Wordbath::Speller->new();
+  #my $speller = Wordbath::Speller->new();
+  my $speller = $self->transcript->speller;
   $speller->check_all_button->signal_connect (
     clicked => sub{$self->transcript->spellcheck_all}
   );

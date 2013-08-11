@@ -52,12 +52,8 @@ sub _build_widget{
   $vb->pack_start($self->check_all_button, 0,0,0);
   #$vb->pack_start($spell_label,0,0,0);
   $vb->pack_end($self->_missp_view,0,0,0);
-  $vb->pack_end($self->_candidates_view,0,0,0);
+  #$vb->pack_end($self->_candidates_view,0,0,0);
   $vb->pack_end($spell_label,0,0,0);
-  for(qw/foo bar baz/){
-    my $iter = $self->_missp_ls->append;
-    $self->_missp_ls->set($iter, 0, $_);
-  }
   return $vb;
 }
 sub _build_checkall_button{
@@ -70,7 +66,14 @@ sub _build_candidates_ls{
 }
 sub _build_missp_ls{
   my $self = shift;
-  return Gtk3::ListStore->new(qw/Glib::String/);
+  my $model = Gtk3::ListStore->new(qw/Glib::String/);
+  for(qw/1 2 3 4/){
+    my $iter = $model->append;
+    $model->set($iter, 0, $_);
+  }
+  my $i = $model->get_iter_first();
+  $i = $model->remove($i);
+  return $model;
 }
 sub _build_candidates_view {
   my $self = shift;
@@ -78,11 +81,44 @@ sub _build_candidates_view {
 }
 sub _build_missp_view{
   my $self = shift;
-  my $tree = Gtk3::TreeView->new($self->_missp_ls);
-  my $renderer = Gtk3::CellRendererText->new();
-  my $column = Gtk3::TreeViewColumn->new_with_attributes(werds => $renderer, text=>0);
+  my $tree = Gtk3::TreeView->new;
+  $tree->set_model($self->_missp_ls);
+  my $ren_text = Gtk3::CellRendererText->new();
+  #$ren_text->set_property('editable', 1);
+  #$ren_text->signal_connect (edited => \&cell_edited, $self);
+  my $column = Gtk3::TreeViewColumn->new_with_attributes(werds => $ren_text, text=>0);
   $tree->append_column($column);
   return $tree;
+}
+
+sub cell_edited {
+  my ($cell, $path, $value, $self) = @_;
+  my $tv = $self->_missp_view;
+  warn "changing treeview $tv";
+  my $model = $tv->get_model;
+  #my $model = $self->_missp_ls;
+  my $path_str = Gtk3::TreePath->new($path);
+  my $iter = $model->get_iter($path_str);
+  $model->set($iter, 0, $value);
+    $iter = $model->append;
+    $model->set($iter, 0, 'FOO');
+  my $i = $model->get_iter_first();
+  $i = $model->remove($i);
+}
+
+sub clear_missps{
+  my $self = shift;
+  my $tv = $self->_missp_view;
+  my $model = $tv->get_model;
+  $model->clear();
+}
+
+sub add_missp{
+  my ($self,$word) = @_;
+  my $tv = $self->_missp_view;
+  my $model = $tv->get_model;
+  my $i = $model->append;
+  $model->set($i, 0, $word);
 }
 
 use Text::Hunspell;

@@ -366,6 +366,7 @@ sub spellcheck_range {
 }
 sub spellcheck_all{
   my $self = shift;
+  $self->speller->clear_missps; #reset this misspelling list.
   my ($start, $end) = $self->_buf->get_bounds();
   $self->spellcheck_range($start,$end);
 }
@@ -374,9 +375,9 @@ sub _check_word_spelling{
   my ($self, $word_txt,$start,$end) = @_;
   my $res = $self->speller->check_word ($word_txt);
   if (ref $res){
-    say "Word: $word_txt. suggs: @$res."
+    #say "Word: $word_txt. suggs: @$res.";
+    $self->speller->add_missp($word_txt, $res);
   }
-  #say "Word: $word_txt. Res: $res."
 }
 sub spell_replace_all_words{
   my ($self, $incorrect, $correct, $instances) = @_;
