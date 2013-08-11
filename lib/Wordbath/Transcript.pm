@@ -373,6 +373,9 @@ sub spellcheck_all{
 sub _check_word_spelling{
   my ($self, $word_txt,$start,$end) = @_;
   my $res = $self->speller->check_word ($word_txt);
+  if (ref $res){
+    say "Word: $word_txt. suggs: @$res."
+  }
   #say "Word: $word_txt. Res: $res."
 }
 sub spell_replace_all_words{

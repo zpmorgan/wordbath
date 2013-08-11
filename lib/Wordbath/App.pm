@@ -1,6 +1,7 @@
 package Wordbath::App;
 use Moose;
 use Modern::Perl;
+use utf8;
 use Gtk3 -init;
 use FindBin '$Bin';
 use Pango;

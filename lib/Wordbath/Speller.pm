@@ -1,6 +1,7 @@
 package Wordbath::Speller;
 use Moose;
 use Modern::Perl;
+use utf8;
 #use Gtk3;
 
 has widget => (
@@ -84,31 +85,20 @@ sub _build_missp_view{
   return $tree;
 }
 
-
-use IPC::Open3;
-
-say 'Spell checker initializing. Hold your breath please.';
-my ($sp_in,$sp_out,$sp_err);
-use Symbol 'gensym'; $sp_err = gensym;
-my $pid = open3 ($sp_in, $sp_out, $sp_err, 'hunspell -');
-my $res =  <$sp_out>;
-#print $sp_in "foo\nfoo\n";
-if ($res =~ /^Hunspell/){
-  say 'Spell checker initialized. You may breathe.'
-}
-else {
-  say 'hunspell messed up?';
-}
-
+use Text::Hunspell;
+my $speller = Text::Hunspell->new(
+  "/usr/share/hunspell/en_US.aff",    # Hunspell affix file
+  "/usr/share/hunspell/en_US.dic"     # Hunspell dictionary file
+);
 
 sub check_word{
   my ($self, $word) = @_;
   if ($word =~ /\s/){
     die "please dont pollute spell checker with whitespace. ($word)";
   }
-  print $sp_in "$word\n";
-  my $res = <$sp_out>;
-  return $res;
+  return 1 if $speller->check($word);
+  my @suggs = $speller->suggest($word);
+  return \@suggs;
 }
 
 1;
