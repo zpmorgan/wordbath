@@ -167,13 +167,16 @@ sub _build_win{
     }
 
     $vbox->pack_start($text_and_sidebar, 1,1,0);
-    Glib::Timeout->add( 300, \&update_clock, [$self, $clock]);
+    my $i = Glib::Timeout->add( 300, \&update_clock, [$self, $clock]);
+    $self->_timeout_i($i);
   }
 
   $self->_load_styles();
   $win->show_all();
   return $win;
 }
+
+has _timeout_i => (is => 'rw', isa => 'Int');
 
 # Hotkey stuff.
 my $_method_hotkeys = [
@@ -476,6 +479,7 @@ sub please_quit{
   my $self = shift;
   $self->player->shut_down();
   $LOOP->quit;
+  Glib::Source->remove($self->_timeout_i);
   say 'good bye.';
 }
 

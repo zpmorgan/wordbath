@@ -329,13 +329,11 @@ has _deferred_end => (
   sub tag_missp{
     my $self = shift;
     my $buf = $self->buf;
-    #$self->_buf->apply_tag($self->_misspelled_word_tag, $word->start,$word->end);
     $self->buf->apply_tag_by_name('missp', $self->start_iter,$self->end_iter);
   }
   sub untag{
     my $self = shift;
     my $buf = $self->buf;
-    warn $self->word;
     $self->buf->remove_tag_by_name('missp', $self->start_iter,$self->end_iter);
   }
 
