@@ -398,6 +398,10 @@ sub spellcheck_all{
 
 sub _check_word_spelling{
   my ($self, $word_txt,$start,$end) = @_;
+  # ugh. sometimes apostrophes should be checked,
+  # but not if it's at the beginning or end.
+  $word_txt =~ s/^'//;
+  $word_txt =~ s/'$//;
   my $res = $self->speller->check_word ($word_txt);
   if (ref $res){
     #say "Word: $word_txt. suggs: @$res.";
