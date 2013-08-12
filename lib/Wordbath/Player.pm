@@ -3,6 +3,7 @@ use Moose;
 use Modern::Perl;
 use GStreamer -init;
 use FindBin '$Bin';
+use Carp;
 
 #gstreamer stuff in this module.
 #todo: subband sinusoidal modeling?
@@ -133,8 +134,7 @@ sub dur_ns{
     return $dur;
   }
   else {
-    $self->pipeline->set_state('playing');
-    die 'could not query duration.';
+    confess 'could not query duration.';
   }
 }
 sub print_status{
