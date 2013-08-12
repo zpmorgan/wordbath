@@ -120,7 +120,6 @@ sub add_missp{
   my $model = $tv->get_model;
   my $i = $model->get_iter_first;
   while($i){
-    say $i;
     my $stord_word = $model->get($i,0);
     return if $txt eq $stord_word;
     last unless $model->iter_next($i);
