@@ -271,8 +271,28 @@ has _deferred_end => (
 {
   package Wordbath::Transcript::Word;
   use Moose;
+
   has word => (isa => 'Str', is => 'ro', required => 1);
-  has [qw|start end|] => (isa => 'Gtk3::TextMark', is => 'ro', required => 1);
+  has [qw|start end|] => (isa => 'Gtk3::TextIter', is => 'ro', required => 1);
+
+  use Text::Hunspell;
+  my $speller = Text::Hunspell->new(
+    "/usr/share/hunspell/en_US.aff",    # Hunspell affix file
+    "/usr/share/hunspell/en_US.dic"     # Hunspell dictionary file
+  );
+
+  sub check_spelling{
+    my $self = shift;
+    my $txt = $self->word;
+    $txt =~ s/^'//;
+    $txt =~ s/'$//;
+    if ($txt =~ /\s/){
+      die "please dont check spelling of a word with space in it. ($txt)";
+    }
+    return 1 if $speller->check($txt);
+    my @suggs = $speller->suggest($txt);
+    return \@suggs;
+  }
 }
 
 # misspelled words: [word, marked start, marked end]
@@ -385,7 +405,12 @@ sub spellcheck_range {
     my $word_txt = $buf->get_text($start,$w_end,1);
     #warn $word_txt;
     #die if $word_txt eq ' ';
-    $self->_check_word_spelling($word_txt,$start->copy,$w_end->copy);
+    my $word = Wordbath::Transcript::Word->new(
+      word => $word_txt,
+      start => $start->copy,
+      end => $w_end->copy,
+    );
+    $self->_check_word_spelling($word);
     $start = $w_end;
   }
 }
@@ -397,17 +422,15 @@ sub spellcheck_all{
 }
 
 sub _check_word_spelling{
-  my ($self, $word_txt,$start,$end) = @_;
+  my ($self, $word) = @_;
   # ugh. sometimes apostrophes should be checked,
   # but not if it's at the beginning or end.
-  $word_txt =~ s/^'//;
-  $word_txt =~ s/'$//;
-  my $res = $self->speller->check_word ($word_txt);
+  my $res = $word->check_spelling;
   if (ref $res){
     #say "Word: $word_txt. suggs: @$res.";
-    $self->speller->add_missp($word_txt, $res);
+    $self->speller->add_missp($word->word, $res);
     #mark the misspelled word.
-    $self->_buf->apply_tag($self->_misspelled_word_tag, $start,$end);
+    $self->_buf->apply_tag($self->_misspelled_word_tag, $word->start,$word->end);
   }
 }
 sub spell_replace_all_words{

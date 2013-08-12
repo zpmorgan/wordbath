@@ -121,21 +121,5 @@ sub add_missp{
   $model->set($i, 0, $word);
 }
 
-use Text::Hunspell;
-my $speller = Text::Hunspell->new(
-  "/usr/share/hunspell/en_US.aff",    # Hunspell affix file
-  "/usr/share/hunspell/en_US.dic"     # Hunspell dictionary file
-);
-
-sub check_word{
-  my ($self, $word) = @_;
-  if ($word =~ /\s/){
-    die "please dont pollute spell checker with whitespace. ($word)";
-  }
-  return 1 if $speller->check($word);
-  my @suggs = $speller->suggest($word);
-  return \@suggs;
-}
-
 1;
 
