@@ -46,7 +46,7 @@ sub _build_scrolled_widget{
   $scrolled->set_hexpand(0);
   my $wordbox = Gtk3::TextView->new();
 
-  my $misspelled_word_tag = $wordbox->get_buffer->create_tag();
+  my $misspelled_word_tag = $wordbox->get_buffer->create_tag('missp');
   $misspelled_word_tag->set("underline-set" => 1);
   $misspelled_word_tag->set("underline" => 'error');
   $self->_misspelled_word_tag( $misspelled_word_tag );
@@ -268,12 +268,76 @@ has _deferred_end => (
   is => 'rw',
 );
 
+
+
 {
   package Wordbath::Transcript::Word;
   use Moose;
 
   has word => (isa => 'Str', is => 'ro', required => 1);
   has [qw|start end|] => (isa => 'Gtk3::TextIter', is => 'ro', required => 1);
+  has [qw|_start_mark _end_mark|] => (isa => 'Gtk3::TextMark', is => 'rw');
+
+  sub buf{
+    my $self = shift;
+    return $self->_end_mark->get_buffer if $self->is_stable;
+    return $self->start->get_buffer;
+  }
+  sub is_stable{
+    my $self = shift;
+    return defined $self->_start_mark;
+  }
+  sub make_stable{
+    my $self = shift;
+    return if $self->is_stable;
+    my $buf = $self->buf;
+    my $smark = $buf->create_mark ('sw', $self->start, 1);
+    my $emark = $buf->create_mark ('ew', $self->end, 1);
+    $self->_start_mark($smark);
+    $self->_end_mark($emark);
+  }
+  sub start_iter{
+    my $self = shift;
+    if (!$self->is_stable){
+      return $self->start;
+    }
+    return $self->buf->get_iter_at_mark($self->start_mark);
+  }
+  sub end_iter{
+    my $self = shift;
+    if (!$self->is_stable){
+      return $self->end;
+    }
+    return $self->buf->get_iter_at_mark($self->end_mark);
+  }
+  sub start_mark{
+    my $self = shift;
+    unless ($self->is_stable){
+      warn 'getting mark from unstable word';
+      $self->make_stable;
+    }
+    $self->_end_mark;
+  }
+  sub end_mark{
+    my $self = shift;
+    unless ($self->is_stable){
+      warn 'getting mark from unstable word';
+      $self->make_stable;
+    }
+    $self->_start_mark;
+  }
+  sub tag_missp{
+    my $self = shift;
+    my $buf = $self->buf;
+    #$self->_buf->apply_tag($self->_misspelled_word_tag, $word->start,$word->end);
+    $self->buf->apply_tag_by_name('missp', $self->start_iter,$self->end_iter);
+  }
+  sub untag{
+    my $self = shift;
+    my $buf = $self->buf;
+    warn $self->word;
+    $self->buf->remove_tag_by_name('missp', $self->start_iter,$self->end_iter);
+  }
 
   use Text::Hunspell;
   my $speller = Text::Hunspell->new(
@@ -295,12 +359,37 @@ has _deferred_end => (
   }
 }
 
-# misspelled words: [word, marked start, marked end]
+# misspelled word instances: [word, marked start, marked end]
+# keyed by the actual spelling of the word.
 has _misspelled_words => (
   isa => 'HashRef',
   is => 'ro',
   default => sub{{}},
 );
+sub add_misspelled_word{
+  my ($self, $word) = @_;
+  $word->make_stable;
+  push @{$self->_misspelled_words->{$word->word}}, $word; #lol
+}
+sub remove_misspelled_word{
+  my ($self, $word) = @_;
+  $word->untag;
+  my @txt_instances = @{$self->_misspelled_words->{$word->word}};
+  @txt_instances = grep {$_ != $word} @txt_instances;
+  if (@txt_instances == 0){
+    delete $self->_misspelled_words->{$word->word};
+  } else {
+    $self->_misspelled_words->{$word->word} = \@txt_instances;
+  }
+}
+sub all_misspelled_words{
+  my $self = shift;
+  my @lists = values %{$self->_misspelled_words};
+  # flatten.
+  my @res;
+  push @res, @$_ for @lists;
+  return @res;
+}
 
 # these should be what hunspell doesn't break on.
 my $word_chars= qr/\p{Alpha}|\d|'/;
@@ -416,7 +505,12 @@ sub spellcheck_range {
 }
 sub spellcheck_all{
   my $self = shift;
-  $self->speller->clear_missps; #reset this misspelling list.
+  #reset the misspelled word widget
+  $self->speller->clear_missps; 
+  #remove those little red underlines:
+  my @missp_words = $self->all_misspelled_words;
+  $self->remove_misspelled_word($_) for @missp_words;
+
   my ($start, $end) = $self->_buf->get_bounds();
   $self->spellcheck_range($start,$end);
 }
@@ -430,7 +524,8 @@ sub _check_word_spelling{
     #say "Word: $word_txt. suggs: @$res.";
     $self->speller->add_missp($word, $res);
     #mark the misspelled word.
-    $self->_buf->apply_tag($self->_misspelled_word_tag, $word->start,$word->end);
+    $word->tag_missp;
+    $self->add_misspelled_word($word);
   }
 }
 sub spell_replace_all_words{
