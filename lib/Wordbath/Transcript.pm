@@ -48,7 +48,7 @@ sub _build_scrolled_widget{
 
   my $misspelled_word_tag = $wordbox->get_buffer->create_tag();
   $misspelled_word_tag->set("underline-set" => 1);
-  $misspelled_word_tag->set("underline" => 'single');
+  $misspelled_word_tag->set("underline" => 'error');
   $self->_misspelled_word_tag( $misspelled_word_tag );
 
   $wordbox->set_wrap_mode('word');
