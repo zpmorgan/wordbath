@@ -10,6 +10,7 @@ use lib 'lib';
 use Math::Roundeth;
 use Wordbath::Speller;
 use Wordbath::Transcript;
+use Wordbath::Config;
 
 my $LOOP; # ?
 $LOOP = Glib::MainLoop->new();
@@ -31,6 +32,13 @@ has transcript => (
   builder => '_build_tsv',
   lazy => 1,
 );
+
+has config => (
+  is => 'ro',
+  isa => 'Wordbath::Config',
+  default => sub{Wordbath::Config->load_or_create()},
+);
+
 has _seekbar => (
   isa => 'Gtk3::Scale',
   is => 'rw',
@@ -108,6 +116,8 @@ sub _build_win{
       $save_item->add_accelerator('activate', $accel_group, $keyval, $mask, 'visible');
       $save_item->signal_connect(activate => sub{ $self->save_text });
     }
+    my $conf_item = Gtk3::MenuItem->new_with_label('Edit Config');
+    $conf_item->signal_connect(activate => sub{ $self->config->launch_edit_window()});
     my $quit_item = Gtk3::MenuItem->new_with_label('Quit');
     {
       my ($keyval, $mask) = Gtk3::accelerator_parse('<Control>Q');
@@ -116,6 +126,7 @@ sub _build_win{
     }
 
     $file_menu->append($save_item);
+    $file_menu->append($conf_item);
     $file_menu->append($quit_item);
 
     my $clock = Gtk3::MenuItem->new_with_label('12:34');
