@@ -27,6 +27,11 @@ has _text_widget => (
   isa => 'Object',
 );
 
+has _misspelled_word_tag => (
+  is => 'rw',
+  isa => 'Gtk3::TextTag',
+);
+
 sub _buf{
   my $self = shift;
   my $txt = $self->_text_widget;
@@ -40,6 +45,12 @@ sub _build_scrolled_widget{
   $scrolled->set_vexpand(1);
   $scrolled->set_hexpand(0);
   my $wordbox = Gtk3::TextView->new();
+
+  my $misspelled_word_tag = $wordbox->get_buffer->create_tag();
+  $misspelled_word_tag->set("underline-set" => 1);
+  $misspelled_word_tag->set("underline" => 'single');
+  $self->_misspelled_word_tag( $misspelled_word_tag );
+
   $wordbox->set_wrap_mode('word');
   $scrolled->add($wordbox);
   my $fontdesc = Pango::FontDescription->from_string('monospace 10');
@@ -257,6 +268,20 @@ has _deferred_end => (
   is => 'rw',
 );
 
+{
+  package Wordbath::Transcript::Word;
+  use Moose;
+  has word => (isa => 'Str', is => 'ro', required => 1);
+  has [qw|start end|] => (isa => 'Gtk3::TextMark', is => 'ro', required => 1);
+}
+
+# misspelled words: [word, marked start, marked end]
+has _misspelled_words => (
+  isa => 'HashRef',
+  is => 'ro',
+  default => sub{{}},
+);
+
 # these should be what hunspell doesn't break on.
 my $word_chars= qr/\p{Alpha}|\d|'/;
 
@@ -377,6 +402,8 @@ sub _check_word_spelling{
   if (ref $res){
     #say "Word: $word_txt. suggs: @$res.";
     $self->speller->add_missp($word_txt, $res);
+    #mark the misspelled word.
+    $self->_buf->apply_tag($self->_misspelled_word_tag, $start,$end);
   }
 }
 sub spell_replace_all_words{
