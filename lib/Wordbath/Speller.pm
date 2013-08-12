@@ -115,10 +115,18 @@ sub clear_missps{
 
 sub add_missp{
   my ($self,$word) = @_;
+  my $txt = $word->word;
   my $tv = $self->_missp_view;
   my $model = $tv->get_model;
-  my $i = $model->append;
-  $model->set($i, 0, $word);
+  my $i = $model->get_iter_first;
+  while($i){
+    say $i;
+    my $stord_word = $model->get($i,0);
+    return if $txt eq $stord_word;
+    last unless $model->iter_next($i);
+  }
+  my $a = $model->append;
+  $model->set($a, 0, $txt);
 }
 
 1;

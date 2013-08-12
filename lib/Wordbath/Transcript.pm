@@ -428,7 +428,7 @@ sub _check_word_spelling{
   my $res = $word->check_spelling;
   if (ref $res){
     #say "Word: $word_txt. suggs: @$res.";
-    $self->speller->add_missp($word->word, $res);
+    $self->speller->add_missp($word, $res);
     #mark the misspelled word.
     $self->_buf->apply_tag($self->_misspelled_word_tag, $word->start,$word->end);
   }
