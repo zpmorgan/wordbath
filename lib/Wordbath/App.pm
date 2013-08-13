@@ -159,8 +159,8 @@ sub _build_win{
       $sidebar->get_style_context->add_class("sidebar");
       $text_and_sidebar->pack_start($transcript_widget, 1,1,0);
       $text_and_sidebar->pack_start($sidebar, 0,0,0);
-      $sidebar->pack_start($self->_speller->widget, 0,0,0);
-      $sidebar->pack_start($self->_slabeler_widget, 0,0,0);
+      $sidebar->pack_start($self->_speller->widget, 1,1,0);
+      $sidebar->pack_start($self->_slabeler_widget, 1,1,0);
       #$_->get_style_context->remove_class("background")
       #  for ($sidebar, $self->_speller->widget, $self->_slabeler_widget);
       $self->_slabeler_widget->get_style_context->add_class("sidebar");

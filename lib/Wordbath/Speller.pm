@@ -51,7 +51,9 @@ sub _build_widget{
   #  for ($vb,$spell_label);
   $vb->pack_start($self->check_all_button, 0,0,0);
   #$vb->pack_start($spell_label,0,0,0);
-  $vb->pack_end($self->_missp_view,0,0,0);
+  my $scrolledwin = Gtk3::ScrolledWindow->new();
+  $scrolledwin->add($self->_missp_view);
+  $vb->pack_end($scrolledwin,1,1,0);
   #$vb->pack_end($self->_candidates_view,0,0,0);
   $vb->pack_end($spell_label,0,0,0);
   return $vb;
