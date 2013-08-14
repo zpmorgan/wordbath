@@ -277,24 +277,30 @@ has _deferred_end => (
   has word => (isa => 'Str', is => 'ro', required => 1);
   has [qw|start end|] => (isa => 'Gtk3::TextIter', is => 'ro', required => 1);
   has [qw|_start_mark _end_mark|] => (isa => 'Gtk3::TextMark', is => 'rw');
+  has _stable => (isa => 'Bool', is => 'rw', default => 0);
+  has buf => (isa => 'Gtk3::TextBuffer', is => 'ro', builder => 'b_buf', lazy=>1);
 
-  sub buf{
+  sub b_buf{
     my $self = shift;
-    return $self->_end_mark->get_buffer if $self->is_stable;
-    return $self->start->get_buffer;
+    if ($self->is_stable){
+      return $self->_end_mark->get_buffer;
+    } else {
+      return $self->start->get_buffer;
+    }
   }
   sub is_stable{
     my $self = shift;
-    return defined $self->_start_mark;
+    my $res = $self->_stable;
+    return $res
   }
   sub make_stable{
     my $self = shift;
     return if $self->is_stable;
-    my $buf = $self->buf;
-    my $smark = $buf->create_mark ('sw', $self->start, 1);
-    my $emark = $buf->create_mark ('ew', $self->end, 1);
+    my $smark = $self->buf->create_mark ('sw'.rand, $self->start, 1);
+    my $emark = $self->buf->create_mark ('ew'.rand, $self->end, 1);
     $self->_start_mark($smark);
     $self->_end_mark($emark);
+    $self->_stable(1);
   }
   sub start_iter{
     my $self = shift;
@@ -334,7 +340,11 @@ has _deferred_end => (
   sub untag{
     my $self = shift;
     my $buf = $self->buf;
-    $self->buf->remove_tag_by_name('missp', $self->start_iter,$self->end_iter);
+    my $s = $self->start_iter;
+    my $e = $self->end_iter;
+    # are these backwards?
+    #say 'UNTAGGING' . $self .','. $self->start_iter->get_offset .','. $e->get_offset;
+    $self->buf->remove_all_tags($s, $e);
   }
 
   use Text::Hunspell;
@@ -343,17 +353,30 @@ has _deferred_end => (
     "/usr/share/hunspell/en_US.dic"     # Hunspell dictionary file
   );
 
+  has _cached_spellings => (
+    is => 'ro',
+    isa => 'HashRef',
+    default => sub{{}},
+  );
+
   sub check_spelling{
     my $self = shift;
     my $txt = $self->word;
+    my $cached = $self->_cached_spellings->{$txt};
+    return $cached if $cached;
     $txt =~ s/^'//;
     $txt =~ s/'$//;
     if ($txt =~ /\s/){
       die "please dont check spelling of a word with space in it. ($txt)";
     }
-    return 1 if $speller->check($txt);
-    my @suggs = $speller->suggest($txt);
-    return \@suggs;
+    my $res;
+    if ($speller->check($txt)){
+      $res = 1;
+    } else {
+      $res = [ $speller->suggest($txt) ];
+    }
+    $self->_cached_spellings->{$txt} = $res;
+    return $res;
   }
 }
 
@@ -371,6 +394,8 @@ sub add_misspelled_word{
 }
 sub remove_misspelled_word{
   my ($self, $word) = @_;
+  $word->untag;
+  $word->tag_missp;
   $word->untag;
   my @txt_instances = @{$self->_misspelled_words->{$word->word}};
   @txt_instances = grep {$_ != $word} @txt_instances;
@@ -519,11 +544,11 @@ sub _check_word_spelling{
   # but not if it's at the beginning or end.
   my $res = $word->check_spelling;
   if (ref $res){
+    $self->add_misspelled_word($word);
     #say "Word: $word_txt. suggs: @$res.";
     $self->speller->add_missp($word, $res);
     #mark the misspelled word.
     $word->tag_missp;
-    $self->add_misspelled_word($word);
   }
 }
 sub spell_replace_all_words{
