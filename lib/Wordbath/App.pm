@@ -110,24 +110,23 @@ sub _build_win{
     my $file_menuitem = Gtk3::MenuItem->new_with_label('File');
     $file_menuitem->set_submenu($file_menu);
 
-    my $save_item = Gtk3::MenuItem->new_with_label('Save');
-    {
-      my ($keyval, $mask) = Gtk3::accelerator_parse('<Control>S');
-      $save_item->add_accelerator('activate', $accel_group, $keyval, $mask, 'visible');
-      $save_item->signal_connect(activate => sub{ $self->save_text });
-    }
-    my $conf_item = Gtk3::MenuItem->new_with_label('Edit Config');
-    $conf_item->signal_connect(activate => sub{ $self->config->launch_edit_window()});
-    my $quit_item = Gtk3::MenuItem->new_with_label('Quit');
-    {
-      my ($keyval, $mask) = Gtk3::accelerator_parse('<Control>Q');
-      $quit_item->add_accelerator('activate', $accel_group, $keyval, $mask, 'visible');
-      $quit_item->signal_connect(activate => sub{ $self->please_quit});
+    my @file_clickables = (
+      [Save => '<Control>S', sub{$self->save_text}],
+      ['Edit config' => undef, sub{ $self->config->launch_edit_window}],
+      [Undo => '<Control>Z', sub{ $self->transcript->undo}],
+      [Redo => '<Control>Y', sub{ $self->transcript->redo}],
+      [Quit => '<Control>Q', sub{$self->please_quit}],
+    );
+    for (@file_clickables){
+      my $item = Gtk3::MenuItem->new_with_label($_->[0]);
+      if (defined $_->[1]){
+        my ($keyval, $mask) = Gtk3::accelerator_parse($_->[1]);
+        $item->add_accelerator('activate', $accel_group, $keyval, $mask, 'visible');
+      }
+      $item->signal_connect(activate => $_->[2]);
+      $file_menu->append($item);
     }
 
-    $file_menu->append($save_item);
-    $file_menu->append($conf_item);
-    $file_menu->append($quit_item);
 
     my $clock = Gtk3::MenuItem->new_with_label('12:34');
     my $txt_pos = Gtk3::MenuItem->new_with_label('Ln:0  Col:0');

@@ -87,8 +87,14 @@ sub on_delete_range{
   my $txt = $buf->get_text($start,$end, 1);
   my $s = $buf->create_mark(undef, $start, 1);
   my $e = $buf->create_mark(undef, $start, 0);
-  my $undo_sub = sub{$buf->delete($s,$e)};
-  my $redo_sub = sub{$buf->insert($s,$txt)};
+  my $undo_sub = sub{
+    my $i = $buf->get_iter_at_mark($s);
+    $buf->insert($i,$txt)
+  };
+  my $redo_sub = sub{
+    my @i = map {$buf->get_iter_at_mark($_)} ($s,$e);
+    $buf->delete(@i)
+  };
   $self->dodo(undo_sub => $undo_sub, redo_sub => $redo_sub);
 }
 
@@ -595,8 +601,9 @@ sub spell_replace_one_word{
 sub dodo{
   my $self = shift;
   my $dodo = Wordbath::Transcript::DoDo->new(@_);
-  $self->push_undo($dodo);
   $self->clear_redo;
+
+  $self->push_undo($dodo);
   if($self->count_undo > 100){
     $self->shift_undo;
     say 'forgetting oldest undo.'
@@ -643,10 +650,12 @@ sub undo {
   my $undo = $self->pop_undo;
   $self->suppress_dodo;
   eval{
+    say 'undo initiated.';
     $undo->undo();
+    say 'undo executed.';
   };
   $self->unsuppress_dodo;
-  $self->push_redo;
+  $self->push_redo($undo);
 }
 sub redo {
   my $self = shift;
@@ -654,10 +663,12 @@ sub redo {
   my $redo = $self->pop_redo;
   $self->suppress_dodo;
   eval{
+    say 'redo initiated.';
     $redo->redo();
+    say 'redo executed.';
   };
   $self->unsuppress_dodo;
-  $self->push_undo;
+  $self->push_undo($redo);
 }
 
 
