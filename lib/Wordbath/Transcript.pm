@@ -62,6 +62,7 @@ sub _build_scrolled_widget{
   $wordbox->signal_connect('delete-from-cursor', \&_on_txt_delete, $self);
   $wordbox->get_buffer->signal_connect('mark-set', \&_on_buf_mark_set, $self);
   $wordbox->get_buffer->signal_connect('changed', \&_on_buf_changed, $self);
+  $wordbox->get_buffer->signal_connect_swapped('delete-range', \&on_delete_range, $self);
   return $scrolled;
 }
 
@@ -79,6 +80,18 @@ sub grab_focus{
 }
 
 #misc callbacks. mark-set seems to be kind of a catch-all.
+sub on_delete_range{
+  my ($self, $start,$end, $buf) = @_;
+  return if $self->undo_suppressed;
+
+  my $txt = $buf->get_text($start,$end, 1);
+  my $s = $buf->create_mark(undef, $start, 1);
+  my $e = $buf->create_mark(undef, $start, 0);
+  my $undo_sub = sub{$buf->delete($s,$e)};
+  my $redo_sub = sub{$buf->insert($s,$txt)};
+  $self->dodo(undo_sub => $undo_sub, redo_sub => $redo_sub);
+}
+
 sub _on_txt_move{
   my ($txt,$step_size, $count, $extend_selection, $self) = @_;
 }
@@ -557,5 +570,96 @@ sub spell_replace_all_words{
 sub spell_replace_one_word{
   my ($self, $incorrect, $correct, $start,$end) = @_;
 }
+
+
+#### UNDO / REDO
+{
+  package Wordbath::Transcript::DoDo;
+  use Moose;
+  use Modern::Perl;
+
+  # has undo_sub, redo_sub
+  for (qw/undo redo/){
+    has $_ . '_sub' => (
+      isa => 'CodeRef',
+      is => 'ro',
+      traits  => ['Code'],
+      handles => {
+        $_ => 'execute', #suppress undo detection first!
+      },
+    );
+  }
+}
+
+# $transcript->dodo( undo_sub => sub{...}, redo_sub => sub{...} );
+sub dodo{
+  my $self = shift;
+  my $dodo = Wordbath::Transcript::DoDo->new(@_);
+  $self->push_undo($dodo);
+  $self->clear_redo;
+  if($self->count_undo > 100){
+    $self->shift_undo;
+    say 'forgetting oldest undo.'
+  }
+  say 'undoable op captured.'
+}
+
+# _undo_stack, _redo_stack.
+# $self->pop_redo, $self->push_undo
+for (qw/undo redo/){
+  has "_$_"."_stack" => (
+    isa => 'ArrayRef',
+    is => 'rw',
+    default => sub{[]},
+    traits => ['Array'],
+    handles => {
+      #pop_undo, pop_redo, push_undo,push_redo, has_undo,has_redo
+      "push_$_" => 'push',
+      "shift_$_" => 'push', #maybe shift_undo a few times when the undo stack gets large.
+      "pop_$_" => 'pop',
+      "has_$_" => 'count',
+      "count_$_" => 'count',
+      "get_$_" => 'get', # get_undo(-1) for top of undo stack.
+      "clear_$_" => 'clear', # empty the stack
+    },
+  );
+}
+
+has _undo_suppressed => (
+  is => 'rw',
+  isa => 'Bool',
+  default => 0,
+  traits => ['Bool'],
+  handles => {
+    suppress_dodo => 'set',
+    unsuppress_dodo => 'unset',
+  },
+  reader => 'undo_suppressed',
+);
+
+sub undo {
+  my $self = shift;
+  return unless $self->has_undo;
+  my $undo = $self->pop_undo;
+  $self->suppress_dodo;
+  eval{
+    $undo->undo();
+  };
+  $self->unsuppress_dodo;
+  $self->push_redo;
+}
+sub redo {
+  my $self = shift;
+  return unless $self->has_redo;
+  my $redo = $self->pop_redo;
+  $self->suppress_dodo;
+  eval{
+    $redo->redo();
+  };
+  $self->unsuppress_dodo;
+  $self->push_undo;
+}
+
+
 1;
 
