@@ -66,12 +66,14 @@ sub _build_candidates_ls{
   my $self = shift;
   return Gtk3::ListStore->new(qw/Glib::String/);
 }
+
 sub _build_missp_ls{
   my $self = shift;
-  my $model = Gtk3::ListStore->new(qw/Glib::String/);
+  my $model = Gtk3::ListStore->new(qw/Glib::String Glib::String/);
   for(qw/1 2 3 4/){
     my $iter = $model->append;
     $model->set($iter, 0, $_);
+    $model->set($iter, 1, 'gtk-add');
   }
   my $i = $model->get_iter_first();
   $i = $model->remove($i);
@@ -85,27 +87,16 @@ sub _build_missp_view{
   my $self = shift;
   my $tree = Gtk3::TreeView->new;
   $tree->set_model($self->_missp_ls);
-  my $ren_text = Gtk3::CellRendererText->new();
-  #$ren_text->set_property('editable', 1);
-  #$ren_text->signal_connect (edited => \&cell_edited, $self);
-  my $column = Gtk3::TreeViewColumn->new_with_attributes(werds => $ren_text, text=>0);
-  $tree->append_column($column);
-  return $tree;
-}
 
-sub cell_edited {
-  my ($cell, $path, $value, $self) = @_;
-  my $tv = $self->_missp_view;
-  warn "changing treeview $tv";
-  my $model = $tv->get_model;
-  #my $model = $self->_missp_ls;
-  my $path_str = Gtk3::TreePath->new($path);
-  my $iter = $model->get_iter($path_str);
-  $model->set($iter, 0, $value);
-    $iter = $model->append;
-    $model->set($iter, 0, 'FOO');
-  my $i = $model->get_iter_first();
-  $i = $model->remove($i);
+  my $ren_text = Gtk3::CellRendererText->new();
+  my $wcolumn = Gtk3::TreeViewColumn->new_with_attributes(werds => $ren_text, text=>0);
+  $tree->append_column($wcolumn);
+
+  my $ren_ignore = Gtk3::CellRendererPixbuf->new();
+  my $icolumn = Gtk3::TreeViewColumn->new_with_attributes(ignore => $ren_ignore);#, pixbuf=>1);
+  $icolumn->set_attributes ( $ren_ignore, 'stock-id' => 1);#'gtk-add' );
+  $tree->append_column($icolumn);
+  return $tree;
 }
 
 sub clear_missps{
@@ -128,6 +119,7 @@ sub add_missp{
   }
   my $a = $model->append;
   $model->set($a, 0, $txt);
+  $model->set($a, 1, 'gtk-add');
 }
 
 1;
