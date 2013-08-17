@@ -4,6 +4,10 @@ use Modern::Perl;
 use utf8;
 #use Gtk3;
 
+with 'Wordbath::Whenever';
+Wordbath::Whenever->import();;
+signal ('ignoring');
+
 has widget => (
   builder => '_build_widget',
   isa => 'Gtk3::Box',
@@ -69,7 +73,8 @@ sub _build_candidates_ls{
 
 sub _build_missp_ls{
   my $self = shift;
-  my $model = Gtk3::ListStore->new(qw/Glib::String Glib::String/);
+  #                                    word          stock icon    bg color
+  my $model = Gtk3::ListStore->new(qw/Glib::String Glib::String Glib::String/);
   for(qw/1 2 3 4/){
     my $iter = $model->append;
     $model->set($iter, 0, $_);
@@ -89,14 +94,27 @@ sub _build_missp_view{
   $tree->set_model($self->_missp_ls);
 
   my $ren_text = Gtk3::CellRendererText->new();
-  my $wcolumn = Gtk3::TreeViewColumn->new_with_attributes(werds => $ren_text, text=>0);
+  my $wcolumn = Gtk3::TreeViewColumn->new_with_attributes(werds => $ren_text, 
+    text=>0, 'cell-background'=>2);
   $tree->append_column($wcolumn);
 
   my $ren_ignore = Gtk3::CellRendererPixbuf->new();
   my $icolumn = Gtk3::TreeViewColumn->new_with_attributes(ignore => $ren_ignore);#, pixbuf=>1);
   $icolumn->set_attributes ( $ren_ignore, 'stock-id' => 1);#'gtk-add' );
   $tree->append_column($icolumn);
+
+  $tree->set_grid_lines ('vertical');
+  $tree->signal_connect_swapped('row_activated', \&on_row_activated, $self);
   return $tree;
+}
+
+sub on_row_activated{
+  my ($self, $path, $col, $tv) = @_;
+  my $model = $tv->get_model;
+  my $i = $model->get_iter($path);
+  my $word_txt = $model->get($i, 0);
+  $model->set($i, 2,'darkgreen');
+  $self->blurp (ignoring => $word_txt);
 }
 
 sub clear_missps{

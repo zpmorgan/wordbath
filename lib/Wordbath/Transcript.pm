@@ -276,6 +276,8 @@ has speller=> (
 sub _build_speller{
   my $self = shift;
   my $sc = Wordbath::Speller->new();
+  $sc->whenever (ignoring => \&on_ignoring_missp, $self);
+  return $sc;
   #$sc->whenever('sp-replace-one' => \&spell_replace_all_words, $self);
   #$sc->whenever('sp-replace-all' => \&spell_replace_one_word, $self);
 };
@@ -426,6 +428,12 @@ sub remove_misspelled_word{
 }
 sub all_misspelled_words{
   my $self = shift;
+  my $specific_word = shift;
+  if ($specific_word){
+    my @w = values @{$self->_misspelled_words->{$specific_word}};
+    return @w;
+  }
+  # all.
   my @lists = values %{$self->_misspelled_words};
   # flatten.
   my @res;
@@ -545,6 +553,13 @@ sub spellcheck_range {
     $start = $w_end;
   }
 }
+
+sub on_ignoring_missp{
+  my ($self,$word_txt) = @_;
+  my @missp_words = $self->all_misspelled_words($word_txt);
+  $self->remove_misspelled_word($_) for @missp_words;
+}
+
 sub spellcheck_all{
   my $self = shift;
   #reset the misspelled word widget
