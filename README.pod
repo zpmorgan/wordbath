@@ -13,6 +13,15 @@ Adjust playback speed with by clicking on the provided audio rate buttons.
 
 =head3 Hotkeys
 
+Hotkeys can use arbitrary modifiers, such as home row keys instead of 'shift' and 'control'.
+
+Example given: hotkey combination "<s>;" performs an ausio seek forward by 5 seconds.
+To activate this, hold down the "S" key and hit the "semicolon" key.
+Such an action will erase any S's left in the transcript in the process.
+
+This is a strange way to do hotkeys, but the usual key modifiers aren't exactly
+in the home row.
+
 =over 1
 
 =item * <F5> to cycle through speaker labels at the end.
@@ -43,11 +52,13 @@ Adjust playback speed with by clicking on the provided audio rate buttons.
 
 =item    * Retroactive punctuation editing hotkeys
 
-=item    * loading of text & metadata.
+=item    * loading of transcript text & other metadata, such as text-audio spacetime anchors.
 
 =item    * a stack of transcription spacetime contexts.
 
 =item    * saved audio position in text location. (spacetime)
+
+=item    * Figure out a way to use capslock effectively.
 
 =back
 
