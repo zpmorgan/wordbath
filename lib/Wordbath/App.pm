@@ -282,9 +282,9 @@ sub _build_arbitkeys{
   for my $foo (@arbitseeks){
     $keys->handle( keycombo => $foo->[0], cb => sub{$self->rel_seek($foo->[1])} );
   }
-  $keys->handle( keycombo => '<>F5', cb => sub{ $self->transcript->next_slabel_in_text; return 1});
-  $keys->handle( keycombo => '<>F7', cb => sub{ $self->_adjust_rate(-.03); return 1});
-  $keys->handle( keycombo => '<>F8', cb => sub{ $self->_adjust_rate(+.03); return 1});
+  $keys->handle( keycombo => 'F5', cb => sub{ $self->transcript->next_slabel_in_text; return 1});
+  $keys->handle( keycombo => 'F7', cb => sub{ $self->_adjust_rate(-.03); return 1});
+  $keys->handle( keycombo => 'F8', cb => sub{ $self->_adjust_rate(+.03); return 1});
   return $keys;
 }
 

@@ -12,8 +12,8 @@ has [qw/_keys_down _combos_by_key/] => (
 # $ak->handle (keycombo => "<shift>J", cb=>sub{foo})
 sub handle{
   my ($self, %args) = @_;
-  $args{keycombo} =~ /^<(.*)>(.*)$/;
-  my $mod = $2;
+  $args{keycombo} =~ /^(?|<(.*)>|())(.*)$/;
+  my $mod = $1;
   my $key = $2;
   die $args{keycombo} unless defined($mod) and ($key);
   my $code = $self->_get_code($key);
