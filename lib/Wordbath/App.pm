@@ -260,81 +260,8 @@ sub _do_hotkeys{
     $ag->connect ($keyval, $hk->[0], 'visible', sub{$hk->[2]->($self, $hk->[3])} );
   }
 }
-{
-  package Wordbath::App::ArbitKeys;
-  use Moose;
-  use Modern::Perl;
-  has [qw/_keys_down _combos_by_key/] => (
-    is => 'ro',
-    isa => 'HashRef',
-    default => sub{{}},
-  );
-  sub handle{
-    my ($self, %args) = @_;
-    $args{keycombo} =~ /^<(.*)>(.*)$/;
-    my $mod = $1;
-    my $key = $2;
-    die $args{keycombo} unless $mod and $key;
-    my $code = $self->get_code($key);
-    my $mod_code = $self->get_code($mod);
-    $self->_combos_by_key->{$code}{$mod_code} = $args{cb};
-  }
-  sub get_code{
-    my ($self, $key) = @_;
-    if($key eq 'shift'){
-      return 'shift';
-    }if($key eq 'left'){
-      return 65361; # not the same as Gtk3::Gdk::KEY_leftarrow?
-    } if ($key eq 'right'){
-      return 65363;
-    }
 
-    if ($key eq ';'){
-      $key = 'semicolon'
-    }
-    my $code = eval "Gtk3::Gdk::KEY_$key";
-    if ($@){
-      die "eval broke, of Gtk3::Gdk::KEY_$key";
-    }
-    return $code;
-  }
-  use Time::HiRes qw/time/;
-  sub do_press_event{ # gdk
-    my ($self, $e) = @_;
-    my $val = $e->keyval;
-
-    my $arbitthreshold_ms = .300;
-
-    my $ms = time() * 1000;
-    $self->_keys_down->{$val} = $ms;
-
-    my $mod = '';
-    if ($e->state * 'shift-mask'){
-      $mod = 'shift';
-    }
-    my $cb = $self->_combos_by_key->{$val}{$mod};
-    unless ($cb){
-      my @downs = keys %{$self->_keys_down};
-      for my $d (@downs){
-        next if $val == $d; #press can't equal modifier.
-        my $how_long_held = $ms - $self->_keys_down->{$d};
-        next if $how_long_held < $arbitthreshold_ms; #hold it down for longer.
-        #use a down key as an arbitrary modifier.
-        $cb = $self->_combos_by_key->{$val}{$d};
-        last if $cb;
-      }
-    }
-    return 0 unless $cb;
-    $cb->();
-    return 1;
-  }
-  sub do_release_event{
-    my ($self,$e) = @_;
-    my $val = $e->keyval;
-    delete $self->_keys_down->{$val};
-  }
-}
-
+use Wordbath::App::ArbitKeys;
 has _arbitkeys => (
   is => 'ro',
   isa => 'Wordbath::App::ArbitKeys',
