@@ -101,7 +101,8 @@ sub _build_win{
   $win->signal_connect (destroy => sub { 
       $self->please_quit();
     });
-  $win->signal_connect('key-press-event', \&_win_key_press, $self);
+  $win->signal_connect_swapped ('key-press-event', \&_win_key_press, $self);
+  $win->signal_connect_swapped ('key-release-event', \&_win_key_release, $self);
   {
     my $vbox = Gtk3::Box->new('vertical', 3);
     my $menubar = Gtk3::MenuBar->new();
@@ -177,23 +178,6 @@ sub _build_win{
 
 has _timeout_i => (is => 'rw', isa => 'Int');
 
-# Hotkey stuff.
-my $_method_hotkeys = [
-  ['shift-mask','space', \&play_pause],
-  ['control-mask','t', \&seek_text_from_audio],
-  ['control-mask','f', \&seek_audio_from_text],
-  # gtk can't have arrow key accelerators?
-  #['shift-mask','leftarrow', \&rel_seek, -2],
-];
-sub _do_hotkeys{
-  my ($self) = @_;
-  my $ag = $self->_accel_group;
-  for my $hk (@$_method_hotkeys){
-    my $keyval = Gtk3::Gdk::keyval_from_name($hk->[1]);
-    $ag->connect ($keyval, $hk->[0], 'visible', sub{$hk->[2]->($self, $hk->[3])} );
-  }
-}
-
 sub play_pause{
   my $self = shift;
   $self->player->toggle_play_state;
@@ -260,20 +244,129 @@ sub _click_1_to_2{
   }
   return 0;
 }
+# Hotkey stuff.
+my $_method_hotkeys = [
+  ['shift-mask','space', \&play_pause],
+  ['control-mask','t', \&seek_text_from_audio],
+  ['control-mask','f', \&seek_audio_from_text],
+  # gtk can't have arrow key accelerators?
+  #['shift-mask','leftarrow', \&rel_seek, -2],
+];
+sub _do_hotkeys{
+  my ($self) = @_;
+  my $ag = $self->_accel_group;
+  for my $hk (@$_method_hotkeys){
+    my $keyval = Gtk3::Gdk::keyval_from_name($hk->[1]);
+    $ag->connect ($keyval, $hk->[0], 'visible', sub{$hk->[2]->($self, $hk->[3])} );
+  }
+}
+{
+  package Wordbath::App::ArbitKeys;
+  use Moose;
+  use Modern::Perl;
+  has [qw/_keys_down _combos_by_key/] => (
+    is => 'ro',
+    isa => 'HashRef',
+    default => sub{{}},
+  );
+  sub handle{
+    my ($self, %args) = @_;
+    $args{keycombo} =~ /^<(.*)>(.*)$/;
+    my $mod = $1;
+    my $key = $2;
+    die $args{keycombo} unless $mod and $key;
+    my $code = $self->get_code($key);
+    my $mod_code = $self->get_code($mod);
+    $self->_combos_by_key->{$code}{$mod_code} = $args{cb};
+  }
+  sub get_code{
+    my ($self, $key) = @_;
+    if($key eq 'shift'){
+      return 'shift';
+    }if($key eq 'left'){
+      return 65361; # not the same as Gtk3::Gdk::KEY_leftarrow?
+    } if ($key eq 'right'){
+      return 65363;
+    }
+
+    if ($key eq ';'){
+      $key = 'semicolon'
+    }
+    my $code = eval "Gtk3::Gdk::KEY_$key";
+    if ($@){
+      die "eval broke, of Gtk3::Gdk::KEY_$key";
+    }
+    return $code;
+  }
+  use Time::HiRes qw/time/;
+  sub do_press_event{ # gdk
+    my ($self, $e) = @_;
+    my $val = $e->keyval;
+
+    my $arbitthreshold_ms = .300;
+
+    my $ms = time() * 1000;
+    $self->_keys_down->{$val} = $ms;
+
+    my $mod = '';
+    if ($e->state * 'shift-mask'){
+      $mod = 'shift';
+    }
+    my $cb = $self->_combos_by_key->{$val}{$mod};
+    unless ($cb){
+      my @downs = keys %{$self->_keys_down};
+      for my $d (@downs){
+        next if $val == $d; #press can't equal modifier.
+        my $how_long_held = $ms - $self->_keys_down->{$d};
+        next if $how_long_held < $arbitthreshold_ms; #hold it down for longer.
+        #use a down key as an arbitrary modifier.
+        $cb = $self->_combos_by_key->{$val}{$d};
+        last if $cb;
+      }
+    }
+    return 0 unless $cb;
+    $cb->();
+    return 1;
+  }
+  sub do_release_event{
+    my ($self,$e) = @_;
+    my $val = $e->keyval;
+    delete $self->_keys_down->{$val};
+  }
+}
+
+has _arbitkeys => (
+  is => 'ro',
+  isa => 'Wordbath::App::ArbitKeys',
+  lazy => 1,
+  builder => '_build_arbitkeys',
+);
+my @arbitseeks = (
+  ['<shift>left', -2],
+  ['<shift>right', 2],
+  ['<s>k', -1],
+  ['<s>l', 1],
+  ['<s>j', -4],
+  ['<s>;', 4],
+);
+sub _build_arbitkeys{
+  my $self = shift;
+  my $keys = Wordbath::App::ArbitKeys->new();
+  for my $foo (@arbitseeks){
+    $keys->handle( keycombo => $foo->[0], cb => sub{$self->rel_seek($foo->[1])} );
+  }
+  return $keys;
+}
+
+sub _win_key_release{
+  my ($self, $e, $w) = @_;
+  my $arbit_res = $self->_arbitkeys->do_release_event($e);
+}
 sub _win_key_press{
-  my ($w, $e, $self) = @_;
+  my ($self, $e, $w) = @_;
   DEBUG("state: ". $e->state .' ,  button: '. $e->keyval);
-  #shift+left. Backwards 1 sec
-  if ($e->keyval == 65361 && ($e->state * 'shift-mask')){
-    $self->rel_seek(-2);
-    return 1;
-  }
-  #shift+right. Forwards 1 sec
-  if ($e->keyval == 65363 && ($e->state * 'shift-mask')){
-    $self->rel_seek(2);
-    return 1;
-  }
-  # F5
+  my $arbit_res = $self->_arbitkeys->do_press_event($e);
+  return 1 if $arbit_res;
   if ($e->keyval == 65474){
     $self->transcript->next_slabel_in_text;
     return 1;
