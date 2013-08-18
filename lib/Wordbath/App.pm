@@ -237,6 +237,9 @@ sub _seekbar_saught{
   $self->player->seek_sec($value);
   $self->transcript->grab_focus();
 }
+
+# gtk scale bars only adjust from button2 clicks.
+# This changes the event button and has it continue to propagate.
 sub _click_1_to_2{
   my ($widget, $event) = @_;
   if( $event->button == 1){
@@ -285,6 +288,7 @@ sub _build_arbitkeys{
   $keys->handle( keycombo => 'F5', cb => sub{ $self->transcript->next_slabel_in_text; return 1});
   $keys->handle( keycombo => 'F7', cb => sub{ $self->_adjust_rate(-.03); return 1});
   $keys->handle( keycombo => 'F8', cb => sub{ $self->_adjust_rate(+.03); return 1});
+  $keys->handle( keycombo => '<a>space', cb => sub{ $self->play_pause; return 1});
   $keys->whenever(retraction => sub{ shift;$self->transcript->arbitrary_text_retraction(@_) }, $self);
   return $keys;
 }
