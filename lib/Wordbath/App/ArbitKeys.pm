@@ -13,20 +13,21 @@ has [qw/_keys_down _combos_by_key/] => (
 sub handle{
   my ($self, %args) = @_;
   $args{keycombo} =~ /^<(.*)>(.*)$/;
-  my $mod = $1;
+  my $mod = $2;
   my $key = $2;
-  die $args{keycombo} unless $mod and $key;
+  die $args{keycombo} unless defined($mod) and ($key);
   my $code = $self->_get_code($key);
   my $mod_code = $self->_get_code($mod);
   $self->_combos_by_key->{$code}{$mod_code} = $args{cb};
+  #warn "self->_combos_by_key->{$code}{$mod_code} = $args{cb}";
 }
 
 # used to set up combo structure, maps names to gdk codes
 sub _get_code{
   my ($self, $key) = @_;
-  if($key eq 'shift'){
-    return 'shift';
-  }if($key eq 'left'){
+  return 'none' if $key eq ''; #no modifier, hopefully
+  return 'shift' if($key eq 'shift');
+  if($key eq 'left'){
     return 65361; # not the same as Gtk3::Gdk::KEY_leftarrow?
   } if ($key eq 'right'){
     return 65363;
@@ -51,7 +52,7 @@ sub do_press_event{ # gdk
   my $ms = time() * 1000;
   $self->_keys_down->{$val} = $ms;
 
-  my $mod = '';
+  my $mod = 'none';
   if ($e->state * 'shift-mask'){
     $mod = 'shift';
   }

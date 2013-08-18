@@ -282,6 +282,9 @@ sub _build_arbitkeys{
   for my $foo (@arbitseeks){
     $keys->handle( keycombo => $foo->[0], cb => sub{$self->rel_seek($foo->[1])} );
   }
+  $keys->handle( keycombo => '<>F5', cb => sub{ $self->transcript->next_slabel_in_text; return 1});
+  $keys->handle( keycombo => '<>F7', cb => sub{ $self->_adjust_rate(-.03); return 1});
+  $keys->handle( keycombo => '<>F8', cb => sub{ $self->_adjust_rate(+.03); return 1});
   return $keys;
 }
 
@@ -294,20 +297,6 @@ sub _win_key_press{
   DEBUG("state: ". $e->state .' ,  button: '. $e->keyval);
   my $arbit_res = $self->_arbitkeys->do_press_event($e);
   return 1 if $arbit_res;
-  if ($e->keyval == 65474){
-    $self->transcript->next_slabel_in_text;
-    return 1;
-  }
-  # F7
-  if ($e->keyval == 65476){
-    $self->_adjust_rate(-.03);
-    return 1;
-  }
-  # F8
-  if ($e->keyval == 65477){
-    $self->_adjust_rate(+.03);
-    return 1;
-  }
   return 0;
 }
 
