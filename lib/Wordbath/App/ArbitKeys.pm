@@ -3,6 +3,11 @@ use Moose;
 use Modern::Perl;
 use Time::HiRes qw/time/;
 
+with 'Wordbath::Whenever';
+Wordbath::Whenever->import();
+# keypress was a modifier.
+signal ('retraction');
+
 has [qw/_keys_down _combos_by_key/] => (
   is => 'ro',
   isa => 'HashRef',
@@ -43,14 +48,19 @@ sub _get_code{
   return $code;
 }
 
+my $arbitthreshold_ms = 120;
+
 sub do_press_event{ # gdk
   my ($self, $e) = @_;
   my $val = $e->keyval;
 
-  my $arbitthreshold_ms = 200;
+  my $ch; # set if, say, a letter key.
+  if ($val < 128){
+    $ch = lc chr($val);
+  }
 
   my $ms = time() * 1000;
-  $self->_keys_down->{$val} = $ms;
+  $self->_keys_down->{$val} //= $ms;
 
   my $mod = 'none';
   if ($e->state * 'shift-mask'){
@@ -64,17 +74,65 @@ sub do_press_event{ # gdk
       my $how_long_held = $ms - $self->_keys_down->{$d};
       next if $how_long_held < $arbitthreshold_ms; #hold it down for longer.
       #use a down key as an arbitrary modifier.
-      $cb = $self->_combos_by_key->{$val}{$d};
+      $mod = $d;
+      $cb = $self->_combos_by_key->{$val}{$mod};
       last if $cb;
     }
   }
-  return 0 unless $cb;
+  # nothing found? then maybe it's a mod that's being pressed. Track if so.
+  unless ($cb){
+    if(defined($self->_last_down) and $self->_last_down eq $ch){
+      $self->inc_last_down_mult;
+    } elsif ($ch){
+      $self->_last_down($ch);
+      $self->clear_last_down_mult;
+      $self->inc_last_down_mult;
+    }
+    return 0 
+  }
+
+  # run the found hotkey callback.
   $cb->();
+
+  if ($ch){
+    if (defined($self->_last_down) and ($self->_last_down eq chr $mod)){
+      say "retracting. ch: $ch, mult: ". $self->_last_down_mult;
+      $self->blurp('retraction', chr $mod, $self->_last_down_mult);
+      $self->clear_last_down;
+      $self->clear_last_down_mult;
+    }
+  }
   return 1;
 }
+
+# should just be for modifiers that would insert text
+has _last_down => (
+  is => 'rw',
+  isa => 'Str',
+  clearer => 'clear_last_down',
+);
+has _last_down_mult => (
+  is => 'rw',
+  isa => 'Int',
+  default => 0,
+  traits  => ['Counter'],
+  handles => {
+    clear_last_down_mult => 'reset',
+    inc_last_down_mult => 'inc',
+  },
+);
+
 sub do_release_event{
   my ($self,$e) = @_;
   my $val = $e->keyval;
+  #my $key_text = Gtk3::Gdk::keyval_to_unicode($val);
+  if ($val < 128){
+    my $ch = lc chr($val);
+    if (defined($self->_last_down) and ($self->_last_down eq $ch)){
+      $self->clear_last_down;
+      $self->clear_last_down_mult;
+    }
+  }
   delete $self->_keys_down->{$val};
 }
 1;
