@@ -1,0 +1,53 @@
+=head1 Wordbath -- A transcription tool.
+
+=head3 Usage
+
+Invoke with a URL or a filesystem path to some audio.
+
+    ./wordbath ~/interview.avi
+    ./wordbath http://upload.wikimedia.org/wikipedia/commons/a/a8/Brfxxccxxmnpcccclllmmnprxvclmnckssqlbb11116-060521.ogg
+
+Audio via URLs is saved to /tmp/wordbath, or your favorite working directory.
+
+Adjust playback speed with by clicking on the provided audio rate buttons.
+
+=head3 Hotkeys
+
+=over 1
+
+=item * <F5> to cycle through speaker labels at the end.
+
+=item * <F7>, <F8> to slow down or speed up audio by 3 percent
+
+=item * <ctrl>s to save next to the audio file, e.g. "audio.mp3.txt"
+
+=item * <ctrl>q to quit
+
+=item * <ctrl>z to recover from traumatic deletions
+
+=item * <ctrl>y to redo said deletions
+
+=item * <shift>leftarrow, <shift>rightarrow relative seek to -2,+2 seconds.
+
+=item * <s>j, <s>k, <s>l, <s>; relative seek to -5,-1,+1,+5 seconds.
+
+=back
+
+=head3 TODO
+
+=over 1
+
+=item    * Undo/Redo stack. (partially implemented)
+
+=item    * spell checking (partially implemented)
+
+=item    * Retroactive punctuation editing hotkeys
+
+=item    * loading of text & metadata.
+
+=item    * a stack of transcription spacetime contexts.
+
+=item    * saved audio position in text location. (spacetime)
+
+=back
+
