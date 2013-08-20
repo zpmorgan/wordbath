@@ -79,14 +79,17 @@ sub do_press_event{ # gdk
       last if $cb;
     }
   }
-  # nothing found? then maybe it's a mod that's being pressed. Track if so.
+
+  # nothing found? then maybe it's a ratractable mod that's being pressed. Track if so.
   unless ($cb){
-    if(defined($self->_last_down) and $self->_last_down eq $ch){
-      $self->inc_last_down_mult;
-    } elsif ($ch){
-      $self->_last_down($ch);
-      $self->clear_last_down_mult;
-      $self->inc_last_down_mult;
+    if(defined ($ch)){
+      if (defined($self->_last_down) and $self->_last_down eq $ch){
+        $self->inc_last_down_mult;
+      } else {
+        $self->_last_down($ch);
+        $self->clear_last_down_mult;
+        $self->inc_last_down_mult;
+      }
     }
     return 0 
   }
