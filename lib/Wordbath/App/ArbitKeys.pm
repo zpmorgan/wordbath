@@ -98,21 +98,23 @@ sub do_press_event{ # gdk
   my $ms = time() * 1000;
   $self->_keys_down->{$val} //= $ms;
 
-  my $mod = 'none';
-  if ($e->state * 'shift-mask'){
-    $mod = 'shift';
-  }
-  
-  #my $cb;
-  my $combo;
   my @combos_for_key = @{ $self->_combos_by_key->{$val} // []};
-  for (@combos_for_key){
-    my $mod = $_->modcode;
-    next unless $self->_keys_down->{$mod};
-    my $how_long_held = $ms - $self->_keys_down->{$mod};
-    next if $how_long_held < $arbitthreshold_ms; #hold it down for longer.
-    $combo = $_;
-    last;
+  my $combo;
+  if ($e->state * 'shift-mask'){
+    my $mod = 'shift';
+    for (@combos_for_key){
+      $combo = $_ if ($_->modifier eq 'shift')
+    }
+  }
+  unless ($combo) {
+    for (@combos_for_key){
+      my $mod = $_->modcode;
+      next unless $self->_keys_down->{$mod};
+      my $how_long_held = $ms - $self->_keys_down->{$mod};
+      next if $how_long_held < $arbitthreshold_ms; #hold it down for longer.
+      $combo = $_;
+      last;
+    }
   }
 
   # nothing found? then maybe it's a ratractable mod that's being pressed. Track if so.
