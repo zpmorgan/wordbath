@@ -109,6 +109,10 @@ sub do_press_event{ # gdk
   unless ($combo) {
     for (@combos_for_key){
       my $mod = $_->modcode;
+      if ($mod eq 'none'){ #plain F5, for example
+        $combo = $_;
+        last;
+      }
       next unless $self->_keys_down->{$mod};
       my $how_long_held = $ms - $self->_keys_down->{$mod};
       next if $how_long_held < $arbitthreshold_ms; #hold it down for longer.
