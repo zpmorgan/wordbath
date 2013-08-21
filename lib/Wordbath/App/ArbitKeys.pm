@@ -5,10 +5,53 @@ use Time::HiRes qw/time/;
 
 with 'Wordbath::Whenever';
 Wordbath::Whenever->import();
-# keypress was a modifier.
+# 'retraction' is spewed when the previous keypress
+# turns out to be a modifier.
 signal ('retraction');
 
-has [qw/_keys_down _combos_by_key/] => (
+{
+  package Wordbath::App::ArbitKeys::Combo;
+  use Moose;
+  use Modern::Perl;
+  has pattern => ( isa => 'Str', is => 'ro');
+  has key => ( isa => 'Str', is => 'ro',lazy => 1, builder => '_key_from_pattern');
+  has modifier => ( isa => 'Str', is => 'ro',lazy => 1, builder => '_mod_from_pattern');
+  has cb => ( isa => 'CodeRef', is => 'ro',required => 1);
+  has is_retractable => ( isa => 'Bool', is => 'ro', lazy => 1, builder => '_determine_retractability');
+
+  # modifier retractability
+  sub _determine_retractability{
+    my $self = shift;
+    return 1 if $self->modifier =~ /^.$/;
+    return 0;
+  }
+  sub _key_from_pattern{
+    my $self = shift;
+    die 'no pattern' unless $self->pattern;
+    $self->pattern =~ /^(<.*>)?(.*)$/;
+    return $2;
+  }
+  sub _mod_from_pattern{
+    my $self = shift;
+    die 'no pattern' unless $self->pattern;
+    $self->pattern =~ /^(?|<(.*)>|())(.*)$/;
+    return $1;
+  }
+
+  # codes: keyvals with gdk inconsistencies fixed?
+  # and 'mask' keys, such as shift, are named instead.
+  # (KEY_leftarrow, etc.)
+  sub keycode{
+    my $self = shift;
+    my $code = Wordbath::App::ArbitKeys->_get_code($self->key);
+  }
+  sub modcode{
+    my $self = shift;
+    my $code = Wordbath::App::ArbitKeys->_get_code($self->modifier);
+  }
+}
+
+has [qw/_keys_down _combos_by_mod _combos_by_key/] => (
   is => 'ro',
   isa => 'HashRef',
   default => sub{{}},
@@ -17,14 +60,12 @@ has [qw/_keys_down _combos_by_key/] => (
 # $ak->handle (keycombo => "<shift>J", cb=>sub{foo})
 sub handle{
   my ($self, %args) = @_;
-  $args{keycombo} =~ /^(?|<(.*)>|())(.*)$/;
-  my $mod = $1;
-  my $key = $2;
-  die $args{keycombo} unless defined($mod) and ($key);
-  my $code = $self->_get_code($key);
-  my $mod_code = $self->_get_code($mod);
-  $self->_combos_by_key->{$code}{$mod_code} = $args{cb};
-  #warn "self->_combos_by_key->{$code}{$mod_code} = $args{cb}";
+  # $args{keycombo} =~ /^(?|<(.*)>|())(.*)$/;
+  my $combo = Wordbath::App::ArbitKeys::Combo->new( pattern => $args{keycombo} , cb => $args{cb} );
+  my $code = $combo->keycode;
+  my $mod_code = $combo->modcode;
+  push @{$self->_combos_by_key->{$code}}, $combo; 
+  push @{$self->_combos_by_mod->{$mod_code}}, $combo; 
 }
 
 # used to set up combo structure, maps names to gdk codes
@@ -54,11 +95,6 @@ sub do_press_event{ # gdk
   my ($self, $e) = @_;
   my $val = $e->keyval;
 
-  my $ch; # set if, say, a letter key.
-  if ($val < 128){
-    $ch = lc chr($val);
-  }
-
   my $ms = time() * 1000;
   $self->_keys_down->{$val} //= $ms;
 
@@ -66,23 +102,23 @@ sub do_press_event{ # gdk
   if ($e->state * 'shift-mask'){
     $mod = 'shift';
   }
-  my $cb = $self->_combos_by_key->{$val}{$mod};
-  unless ($cb){
-    my @downs = keys %{$self->_keys_down};
-    for my $d (@downs){
-      next if $val == $d; #press can't equal modifier.
-      my $how_long_held = $ms - $self->_keys_down->{$d};
-      next if $how_long_held < $arbitthreshold_ms; #hold it down for longer.
-      #use a down key as an arbitrary modifier.
-      $mod = $d;
-      $cb = $self->_combos_by_key->{$val}{$mod};
-      last if $cb;
-    }
+  
+  #my $cb;
+  my $combo;
+  my @combos_for_key = @{ $self->_combos_by_key->{$val} // []};
+  for (@combos_for_key){
+    my $mod = $_->modcode;
+    next unless $self->_keys_down->{$mod};
+    my $how_long_held = $ms - $self->_keys_down->{$mod};
+    next if $how_long_held < $arbitthreshold_ms; #hold it down for longer.
+    $combo = $_;
+    last;
   }
 
   # nothing found? then maybe it's a ratractable mod that's being pressed. Track if so.
-  unless ($cb){
-    if(defined ($ch)){
+  unless ($combo){
+    if ($val < 128){
+      my $ch = lc chr $val;
       if (defined($self->_last_down) and $self->_last_down eq $ch){
         $self->inc_last_down_mult;
       } else {
@@ -95,12 +131,13 @@ sub do_press_event{ # gdk
   }
 
   # run the found hotkey callback.
-  $cb->();
+  $combo->cb->();
 
-  if ($ch){
-    if (defined($self->_last_down) and ($self->_last_down eq chr $mod)){
+  if ($combo->is_retractable){ #retract if the mod left a mark in the transcript.
+    if (defined($self->_last_down) and ($self->_last_down eq  $combo->modifier)){
+      my $ch = $combo->modifier;
       say "retracting. ch: $ch, mult: ". $self->_last_down_mult;
-      $self->blurp('retraction', chr $mod, $self->_last_down_mult);
+      $self->blurp('retraction', $combo->modifier, $self->_last_down_mult);
       $self->clear_last_down;
       $self->clear_last_down_mult;
     }
