@@ -692,15 +692,19 @@ sub arbitrary_text_retraction{
   my $buf = $self->_buf;
 
   my ($start, $end) = $buf->get_bounds();
-  for (1..$mult){
-    my $textmark = $buf->get_insert;
-    my $i = $buf->get_iter_at_mark ($textmark);
-    my $j = $buf->get_iter_at_mark ($textmark);
-    $i->backward_char;
-    my $t = $buf->get_text($i,$j, 1);
-    return unless $t eq $char;
-    $buf->delete($i,$j);
-  }
+  $self->suppress_dodo;
+  eval{
+    for (1..$mult){
+      my $textmark = $buf->get_insert;
+      my $i = $buf->get_iter_at_mark ($textmark);
+      my $j = $buf->get_iter_at_mark ($textmark);
+      $i->backward_char;
+      my $t = $buf->get_text($i,$j, 1);
+      return unless $t eq $char;
+      $buf->delete($i,$j);
+    }
+  };
+  $self->unsuppress_dodo;
 }
 
 
