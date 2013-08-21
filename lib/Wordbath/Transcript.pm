@@ -6,6 +6,8 @@ with 'Wordbath::Whenever';
 Wordbath::Whenever->import();;
 signal ('pos_change');
 
+sub DEBUG{}
+
 #signal ('word-changed');
 #signal ('word-entered-focus');
 #signal ('word-left-focus');
@@ -103,11 +105,11 @@ sub _on_txt_move{
 }
 sub _on_txt_insert{
   my ($txt,$string, $self) = @_;
-  say "insertion event. txt: $string";
+  DEBUG("insertion event. txt: $string");
 }
 sub _on_txt_delete{
   my ($txt,$deltype, $count, $self) = @_;
-  say "deletion event. deltype: $deltype, count: $count";
+  DEBUG("deletion event. deltype: $deltype, count: $count");
 }
 sub _on_buf_mark_set{
   my ($txt,$iter, $mark, $self) = @_;
@@ -117,7 +119,7 @@ sub _on_buf_changed{
   my ($txt, $self) = @_;
   $self->_on_pos_change;
   my ($line, $col) = $self->get_text_pos();
-  say "buf 'changed' event. Cursor: line $line, col $col";
+  DEBUG("buf 'changed' event. Cursor: line $line, col $col");
 }
 
 sub _on_pos_change{
