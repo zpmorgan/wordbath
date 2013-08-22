@@ -197,8 +197,8 @@ sub get_text_pos{
     my $x = float(map {$_->pos_ns} @anchors);
     my $y = float(map {$_->pos_chars} @anchors);
     my $xi = float($pos_ns);
-    my ($yi,$err) = $xi->interpolate($x, $y);
-    die 'hmm?' if $err->sclr;
+    my ($yi,$err) = $xi->interpol($x, $y);
+    # currently this warns on extrapolation, and probably doesn't do it right.
     my $iter = $buf->get_iter_at_offset ($yi->floor->sclr);
     return $iter;
   }
