@@ -193,8 +193,6 @@ sub _load_styles{
   my $self = shift;
   my $p = Gtk3::CssProvider->new;
   my $css_filename = 'delorean-noir.css';
-  # Says Perl: "What's a gfile?" How do I do this?
-  # my $file = Gtk3::gfile_new_for_path($css_filename);
   # $p->load_from_file($css_filename);
   my $cssdata = read_file('delorean-noir.css');
   $p->load_from_data($cssdata, -1);
@@ -302,7 +300,7 @@ sub _win_key_release{
 }
 sub _win_key_press{
   my ($self, $e, $w) = @_;
-  DEBUG("state: ". $e->state .' ,  button: '. $e->keyval);
+  $self->logger->DEBUG("state: ". $e->state .' ,  button: '. $e->keyval);
   my $arbit_res = $self->_arbitkeys->do_press_event($e);
   return 1 if $arbit_res;
   return 0;
@@ -396,7 +394,7 @@ sub _adjust_rate {
   $self->_cur_rate_lbl->set_text(($next_rate * 100) . '%');
   #move the label around
   my $pos = 0;
-  say "rate adjustment. next_rate: $next_rate";
+  $self->logger->INFO("rate adjustment. next_rate: $next_rate");
   for my $opt (0 .. $#audio_rate_options){
     $pos = $opt;
     last if $audio_rate_options[$opt] > $next_rate;
@@ -496,7 +494,7 @@ sub please_quit{
   $self->player->shut_down();
   $LOOP->quit;
   Glib::Source->remove($self->_timeout_i);
-  say 'good bye.';
+  $self->logger->NOTICE('good bye.');
 }
 
 sub save_text{
@@ -507,7 +505,7 @@ sub save_text{
   $txt .= "\n" unless $txt =~ m|\n$|;
 
   write_file($file_path, {binmode => ':utf8'}, $txt);
-  say "wrote to $file_path";
+  $self->logger->NOTICE("wrote to $file_path");
 }
 sub _text_file_path{
   my $self = shift;
@@ -515,6 +513,15 @@ sub _text_file_path{
   return $audio_path . '.txt';
 }
 
+use Log::Fast;
+has logger => (is => 'ro', isa => 'Log::Fast', default => sub{Log::Fast->global()});
+sub log_to_file{
+  my ($self, $path) = @_;
+  open (my $fh, ">$path");
+  $self->logger->config({fh => $fh});
+  $self->logger->config({prefix => '%P::%F|%L%_'});
+  $self->logger->NOTICE("logging to $path");
+}
 1;
 
 

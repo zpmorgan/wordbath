@@ -9,6 +9,8 @@ Wordbath::Whenever->import();
 # turns out to be a modifier.
 signal ('retraction');
 
+has logger => (is => 'ro', isa => 'Log::Fast', default => sub{Log::Fast->global()});
+
 {
   package Wordbath::App::ArbitKeys::Combo;
   use Moose;
@@ -84,6 +86,7 @@ sub _get_code{
   }
   my $code = eval "Gtk3::Gdk::KEY_$key";
   if ($@){
+    $self->logger->ERR("eval broke, of Gtk3::Gdk::KEY_$key");
     die "eval broke, of Gtk3::Gdk::KEY_$key";
   }
   return $code;
@@ -125,8 +128,8 @@ sub do_press_event{ # gdk
         if (defined($self->_last_down) and ($self->_last_down eq  $potent_combo->modifier)){
           $self->_pending_char_retraction($self->_last_down);
           $self->_pending_char_mult($self->_last_down_mult);
+          $self->logger->INFO("self->_pending_char_retraction(".$self->_last_down);
         }
-        say "self->_pending_char_retraction(".$self->_last_down;;
         my $to = Glib::Timeout->add ( $arbitthreshold_ms - $how_long_held, sub{
             $potent_combo->cb->();
             #retract..
@@ -191,7 +194,7 @@ has _last_down_mult => (
 sub retract_last_down{
   my $self = shift;
   my $ch = $self->_last_down;
-  say "retracting. ch: $ch, mult: ". $self->_last_down_mult;
+  $self->logger->INFO("retracting. ch: $ch, mult: ". $self->_last_down_mult);
   $self->blurp('retraction', $ch, $self->_last_down_mult);
   $self->clear_last_down;
   $self->clear_last_down_mult;
@@ -226,7 +229,9 @@ has _pending_timeout_i => (is => 'rw',isa => 'Int', clearer => '_foo4');
 has _pending_combo => (
   is => 'rw',isa => 'Wordbath::App::ArbitKeys::Combo', clearer => '_foo3',
   predicate => 'combo_pending');
-has _pending_char_retraction => (is => 'rw',isa => 'Str', clearer => '_foo2');
+has _pending_char_retraction => (
+  is => 'rw',isa => 'Str', clearer => '_foo2',
+  predicate => 'combo_retraction_pending');
 has _pending_char_mult => (is => 'rw',isa => 'Int', clearer => '_foo1');
 sub _drop_pending_combo{
   my $self = shift;
@@ -239,10 +244,10 @@ sub _drop_pending_combo{
 }
 sub _retract_pending_combo_retractables{
   my $self = shift;
-  return unless $self->combo_pending;
+  return unless $self->combo_retraction_pending;
   my $ch = $self->_pending_char_retraction;
   my $mult= $self->_pending_char_mult;
-  say "retracting (was pending). ch: $ch, mult: ". $mult;
+  $self->logger->INFO("retracting (was pending). ch: $ch, mult: ". $mult);
   $self->blurp('retraction', $ch, $mult);
   # insignificant: foo2; foo1;
 }

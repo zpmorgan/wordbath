@@ -12,6 +12,8 @@ my $location = $ARGV[0];
 my $wb;
 $wb = Wordbath::App->new();
 my $workdir = $wb->config->working_dir;
+my $log_path = "./wordbath.log";
+$wb->log_to_file ($log_path);
 
 my $file;
 
