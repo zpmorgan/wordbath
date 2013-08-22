@@ -145,30 +145,108 @@ sub get_text_pos{
   return ($line, $col);
 }
 
-# TODO: anchor stuff might belong in Wordbath::SpaceTime :)
-has _pseuso_anchors => (
-  is => 'rw',
-  isa => 'ArrayRef',
-  default => sub{[]},
-  traits => ['Array'],
-  handles => {
-    _pseudo_anchor_push => 'push',
-  },
-);
+{
+  package Wordbath::Transcript::AudioSync;
+  use Moose;
+  {
+    package Wordbath::Transcript::AudioSync::Anchor;
+    use Moose;
+    has mark => (is => 'ro', isa => 'Gtk3::TextMark', required => 1);
+    has pos_ns => (is => 'ro', isa => 'Int', required => 1);
+    has time_placed => (is => 'ro', isa => 'Int', default => sub{time});
+    sub pos_chars{
+      my $self = shift;
+      my $textiter = $self->mark->get_buffer->get_iter_at_mark ($self->mark);
+      my $chars = $textiter->get_offset;
+      return $chars;
+    }
 
-sub _insert_pseudo_anchor_here_and_now{
+  }
+  # TODO: anchor stuff might belong in Wordbath::SpaceTime :)
+  has _pseuso_anchors => (
+    is => 'rw',
+    isa => 'ArrayRef',
+    default => sub{[]},
+    traits => ['Array'],
+    handles => {
+      _pseudo_anchor_push => 'push',
+    },
+  );
+  has transcript => (weak_ref => 1, isa => 'Wordbath::Transcript', is => 'ro');
+  no Moose;
+
+  sub anchor_here_at{
+    my $self = shift;
+    my %args = @_;
+    die 'need time. '.@_ unless $args{pos_ns};
+    die 'need mark. '.@_ unless $args{mark};
+    my $pa = Wordbath::Transcript::AudioSync::Anchor->new(pos_ns => $args{pos_ns}, mark => $args{mark});
+    $self->_pseudo_anchor_push($pa);
+  }
+
+  use PDL;
+
+  #x is audio nanoseconds, y (predicted) is basically character offset in text
+  sub iter_at_audio_pos{
+    my ($self, $pos_ns) = @_;
+    my @anchors = @{$self->_pseuso_anchors};
+    my $buf = $self->transcript->_buf;
+    return $buf->get_start_iter if (@anchors == 0);
+    @anchors = sort {$a->pos_ns <=> $b->pos_ns} @anchors;
+    # PDL interpolate breaks with duplicates.
+    my %uniq;
+    @anchors = grep {!$uniq{$_}++} @anchors;
+
+    my $x = float(map {$_->pos_ns} @anchors);
+    my $y = float(map {$_->pos_chars} @anchors);
+    my $xi = float($pos_ns);
+    my ($yi,$err) = $xi->interpolate($x, $y);
+    die 'hmm?' if $err->sclr;
+    my $iter = $buf->get_iter_at_offset ($yi->floor->sclr);
+    return $iter;
+  }
+  sub audio_pos_at_text_cursor{}
+  sub sync_seek_text_cursor{
+    my $self = shift;
+
+  }
+}
+
+has audiosync => (
+  isa => 'Wordbath::Transcript::AudioSync',
+  is => 'rw',
+  builder => '_build_sync',
+);
+sub _build_sync{
+  my $self = shift;
+  return Wordbath::Transcript::AudioSync->new (transcript => $self);
+}
+
+sub _insert_pseudo_anchor_here_at_pos{
+  my $self = shift;
+  my %args = @_;
+  return unless $args{pos_ns};
+  my $buf = $self->_buf;
+  my $iter = $buf->get_iter_at_mark($buf->get_insert);
+  my $mname;# = 'slabel_anchor:'.$args{pos_ns};
+  my $new_mark = $buf->create_mark($mname, $iter, 1);;
+  $self->audiosync->anchor_here_at (mark => $new_mark, pos_ns => $args{pos_ns});
+}
+
+sub sync_text_to_pos_ns{
+  my $self = shift;
+  my $pos_ns = shift;
+  say "syncing text to $pos_ns ns.";
+  my $iter = $self->audiosync->iter_at_audio_pos($pos_ns);
+  $self->_buf->place_cursor($iter);
+}
+sub pos_ns_at_cursor{
   my $self = shift;
   my $buf = $self->_buf;
-  #my $new_mark = $buf->get_insert->copy;
   my $iter = $buf->get_iter_at_mark($buf->get_insert);
-  my $new_mark = $buf->create_mark('foo', $iter, 0);;
-  my $pos_ns = 12345;#$self->player->pos_ns;
-  my $pa = {
-    mark => $new_mark,
-    pos_ns => $pos_ns,
-    time_placed => time,
-  };
-  $self->_pseudo_anchor_push($pa);
+  my $pos_ns = $self->audiosync->audio_pos_at_iter($iter);
+  say "estimating $pos_ns ns at cursor..";
+  return $pos_ns;
 }
 
 has _slabels_to_try => (
@@ -207,6 +285,7 @@ sub collect_slabels{
 
 sub next_slabel_in_text{
   my $self = shift;
+  my %args = @_;
   my $txt = $self->current_text;
   my $lst_lbl = $self->_last_tried_slabel;
   if ($lst_lbl and $txt =~ /\Q$lst_lbl\E:\s+$/){
@@ -224,7 +303,7 @@ sub next_slabel_in_text{
   }
   else {
     say 'collecting speaker label';
-    $self->_insert_pseudo_anchor_here_and_now();;
+    $self->_insert_pseudo_anchor_here_at_pos(pos_ns => $args{pos_ns} );;
     $self->collect_slabels;
     my $next_lbl = $self->_next_untried_slabel;
     $self->_append_slabel($next_lbl);

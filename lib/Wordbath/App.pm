@@ -285,11 +285,17 @@ sub _build_arbitkeys{
   for my $foo (@arbitseeks){
     $keys->handle( keycombo => $foo->[0], cb => sub{$self->rel_seek($foo->[1])} );
   }
-  $keys->handle( keycombo => 'F5', cb => sub{ $self->transcript->next_slabel_in_text; return 1});
+  $keys->handle( keycombo => 'F5', cb => sub{ 
+      $self->transcript->next_slabel_in_text(pos_ns => $self->player->pos_ns);
+      return 1});
   $keys->handle( keycombo => 'F7', cb => sub{ $self->_adjust_rate(-.03); return 1});
   $keys->handle( keycombo => 'F8', cb => sub{ $self->_adjust_rate(+.03); return 1});
   $keys->handle( keycombo => '<a>space', cb => sub{ $self->play_pause; return 1});
   $keys->whenever(retraction => sub{ shift;$self->transcript->arbitrary_text_retraction(@_) }, $self);
+  # <t>ext (s)eek-sync to audio pos
+  $keys->handle( keycombo => '<t>s', cb => sub{
+      $self->transcript->sync_text_to_pos_ns( $self->player->pos_ns) ; return 1});
+
   return $keys;
 }
 
