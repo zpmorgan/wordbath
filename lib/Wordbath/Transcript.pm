@@ -6,7 +6,8 @@ with 'Wordbath::Whenever';
 Wordbath::Whenever->import();;
 signal ('pos_change');
 
-sub DEBUG{}
+has logger => (is => 'ro', isa => 'Log::Fast', default => sub{Log::Fast->global()});
+#sub DEBUG{}
 
 #signal ('word-changed');
 #signal ('word-entered-focus');
@@ -105,11 +106,11 @@ sub _on_txt_move{
 }
 sub _on_txt_insert{
   my ($txt,$string, $self) = @_;
-  DEBUG("insertion event. txt: $string");
+  $self->logger->DEBUG("insertion event. txt: $string");
 }
 sub _on_txt_delete{
   my ($txt,$deltype, $count, $self) = @_;
-  DEBUG("deletion event. deltype: $deltype, count: $count");
+  $self->logger->DEBUG("deletion event. deltype: $deltype, count: $count");
 }
 sub _on_buf_mark_set{
   my ($txt,$iter, $mark, $self) = @_;
@@ -119,7 +120,7 @@ sub _on_buf_changed{
   my ($txt, $self) = @_;
   $self->_on_pos_change;
   my ($line, $col) = $self->get_text_pos();
-  DEBUG("buf 'changed' event. Cursor: line $line, col $col");
+  $self->logger->DEBUG("buf 'changed' event. Cursor: line $line, col $col");
 }
 
 sub _on_pos_change{
@@ -256,7 +257,7 @@ sub audio_pos_ns_at_cursor{
 sub sync_text_to_pos_ns{
   my $self = shift;
   my $pos_ns = shift;
-  say "syncing text to $pos_ns ns.";
+  $self->logger->INFO("syncing text to $pos_ns ns.");
   my $iter = $self->audiosync->iter_at_audio_pos($pos_ns);
   $self->_buf->place_cursor($iter);
 }
@@ -265,7 +266,7 @@ sub pos_ns_at_cursor{
   my $buf = $self->_buf;
   my $iter = $self->cursor_iter;
   my $pos_ns = $self->audiosync->audio_pos_at_iter($iter);
-  say "estimating $pos_ns ns at cursor..";
+  $self->logger->INFO( "estimating $pos_ns ns at cursor..");
   return $pos_ns;
 }
 
@@ -300,7 +301,7 @@ sub collect_slabels{
   my %seen;
   @slabels = reverse grep {not $seen{$_}++} reverse @slabels;
   $self->_slabels_to_try(\@slabels);
-  say "collected labels: ".scalar @slabels;
+  $self->logger->INFO("collected labels: ".scalar @slabels);
 }
 
 sub next_slabel_in_text{
@@ -309,7 +310,7 @@ sub next_slabel_in_text{
   my $txt = $self->current_text;
   my $lst_lbl = $self->_last_tried_slabel;
   if ($lst_lbl and $txt =~ /\Q$lst_lbl\E:\s+$/){
-    say 'replacing last speaker label.';
+    $self->logger->INFO('replacing last speaker label.');
     my $buf = $self->_buf;
     my $iter = $buf->get_end_iter;
     my $end = $buf->get_end_iter;
@@ -322,7 +323,7 @@ sub next_slabel_in_text{
     $self->_append_slabel($next_lbl);
   }
   else {
-    say 'collecting speaker label';
+    $self->logger->INFO( 'collecting speaker label');
     $self->_insert_pseudo_anchor_here_at_pos(pos_ns => $args{pos_ns} );;
     $self->collect_slabels;
     my $next_lbl = $self->_next_untried_slabel;
@@ -346,7 +347,7 @@ sub _append_slabel{
   my ($self, $next_lbl) = @_;
   my $txt = $self->current_text;
   #return unless $next_lbl;
-  say "appending speaker label $next_lbl";
+  $self->logger->INFO( "appending speaker label $next_lbl");
   my $buf = $self->_buf;
   $self->strip_ending_whitespace();
   my $end = $buf->get_end_iter();
@@ -722,9 +723,9 @@ sub dodo{
   $self->push_undo($dodo);
   if($self->count_undo > 100){
     $self->shift_undo;
-    say 'forgetting oldest undo.'
+    $self->logger->DEBUG('forgetting oldest undo.');
   }
-  say 'undoable op captured.'
+  $self->logger->DEBUG('undoable op captured.');
 }
 
 # _undo_stack, _redo_stack.
@@ -766,9 +767,9 @@ sub undo {
   my $undo = $self->pop_undo;
   $self->suppress_dodo;
   eval{
-    say 'undo initiated.';
+    $self->logger->DEBUG('undo initiated.');
     $undo->undo();
-    say 'undo executed.';
+    $self->logger->DEBUG('undo executed.');
   };
   $self->unsuppress_dodo;
   $self->push_redo($undo);
@@ -779,9 +780,9 @@ sub redo {
   my $redo = $self->pop_redo;
   $self->suppress_dodo;
   eval{
-    say 'redo initiated.';
+    $self->logger->DEBUG('redo initiated.');
     $redo->redo();
-    say 'redo executed.';
+    $self->logger->DEBUG( 'redo executed.');
   };
   $self->unsuppress_dodo;
   $self->push_undo($redo);
