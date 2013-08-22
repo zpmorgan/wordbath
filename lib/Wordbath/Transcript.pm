@@ -136,10 +136,7 @@ sub _on_pos_change{
 
 sub get_text_pos{
   my $self = shift;
-  my $txt = $self->_text_widget;
-  my $buf = $txt->get_buffer;
-  my $textmark = $buf->get_insert;
-  my $textiter = $buf->get_iter_at_mark ($textmark);
+  my $textiter = $self->cursor_iter;
   my $line = $textiter->get_line;
   my $col = $textiter->get_line_offset;
   return ($line, $col);
@@ -205,7 +202,10 @@ sub get_text_pos{
     my $iter = $buf->get_iter_at_offset ($yi->floor->sclr);
     return $iter;
   }
-  sub audio_pos_at_text_cursor{}
+  sub audio_pos_ns_at{
+    my $self = shift;
+    my $iter = shift;
+  }
   sub sync_seek_text_cursor{
     my $self = shift;
 
@@ -222,12 +222,19 @@ sub _build_sync{
   return Wordbath::Transcript::AudioSync->new (transcript => $self);
 }
 
+sub cursor_iter{
+  my $self = shift;
+  my $buf = $self->_buf;
+  my $iter = $buf->get_iter_at_mark($buf->get_insert);
+  return $iter;
+}
+
 sub _insert_pseudo_anchor_here_at_pos{
   my $self = shift;
   my %args = @_;
   return unless $args{pos_ns};
   my $buf = $self->_buf;
-  my $iter = $buf->get_iter_at_mark($buf->get_insert);
+  my $iter = $self->cursor_iter;
   my $mname;# = 'slabel_anchor:'.$args{pos_ns};
   my $new_mark = $buf->create_mark($mname, $iter, 1);;
   $self->audiosync->anchor_here_at (mark => $new_mark, pos_ns => $args{pos_ns});
@@ -243,7 +250,7 @@ sub sync_text_to_pos_ns{
 sub pos_ns_at_cursor{
   my $self = shift;
   my $buf = $self->_buf;
-  my $iter = $buf->get_iter_at_mark($buf->get_insert);
+  my $iter = $self->cursor_iter;
   my $pos_ns = $self->audiosync->audio_pos_at_iter($iter);
   say "estimating $pos_ns ns at cursor..";
   return $pos_ns;
@@ -776,9 +783,8 @@ sub arbitrary_text_retraction{
   $self->suppress_dodo;
   eval{
     for (1..$mult){
-      my $textmark = $buf->get_insert;
-      my $i = $buf->get_iter_at_mark ($textmark);
-      my $j = $buf->get_iter_at_mark ($textmark);
+      my $i = $self->cursor_iter;
+      my $j = $self->cursor_iter;
       $i->backward_char;
       my $t = $buf->get_text($i,$j, 1);
       return unless $t eq $char;
