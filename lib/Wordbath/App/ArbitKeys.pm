@@ -89,11 +89,12 @@ sub _get_code{
   return $code;
 }
 
-my $arbitthreshold_ms = 120;
+my $arbitthreshold_ms = 720;
 
 sub do_press_event{ # gdk
   my ($self, $e) = @_;
   my $val = $e->keyval;
+  $self->_drop_pending_combo;
 
   my $ms = time() * 1000;
   $self->_keys_down->{$val} //= $ms;
@@ -107,48 +108,68 @@ sub do_press_event{ # gdk
     }
   }
   unless ($combo) {
-    for (@combos_for_key){
-      my $mod = $_->modcode;
+    for my $potent_combo (@combos_for_key){
+      my $mod = $potent_combo->modcode;
       if ($mod eq 'none'){ #plain F5, for example
-        $combo = $_;
+        $combo = $potent_combo;
         last;
       }
       next unless $self->_keys_down->{$mod};
       my $how_long_held = $ms - $self->_keys_down->{$mod};
-      next if $how_long_held < $arbitthreshold_ms; #hold it down for longer.
-      $combo = $_;
+      if ($how_long_held < $arbitthreshold_ms){
+        # mod is not held for long enough, so
+        # trigger later on either condition:
+        #   * it's held for a bit longer.
+        #   * 2nd key is released first.
+        $self->_pending_combo($potent_combo);
+        if (defined($self->_last_down) and ($self->_last_down eq  $potent_combo->modifier)){
+          $self->_pending_char_retraction($self->_last_down);
+          $self->_pending_char_mult($self->_last_down_mult);
+        }
+        say "self->_pending_char_retraction(".$self->_last_down;;
+        my $to = Glib::Timeout->add ( $arbitthreshold_ms - $how_long_held, sub{
+            $potent_combo->cb->();
+            #retract..
+          });
+        $self->_pending_timeout_i($to);
+        $self->_track_last_down($val);
+        return 0;
+      }
+      $combo = $potent_combo;
       last;
     }
   }
 
   # nothing found? then maybe it's a ratractable mod that's being pressed. Track if so.
   unless ($combo){
-    if ($val < 128){
-      my $ch = lc chr $val;
-      if (defined($self->_last_down) and $self->_last_down eq $ch){
-        $self->inc_last_down_mult;
-      } else {
-        $self->_last_down($ch);
-        $self->clear_last_down_mult;
-        $self->inc_last_down_mult;
-      }
-    }
+    $self->_track_last_down($val);
     return 0 
   }
+
 
   # run the found hotkey callback.
   $combo->cb->();
 
   if ($combo->is_retractable){ #retract if the mod left a mark in the transcript.
     if (defined($self->_last_down) and ($self->_last_down eq  $combo->modifier)){
-      my $ch = $combo->modifier;
-      say "retracting. ch: $ch, mult: ". $self->_last_down_mult;
-      $self->blurp('retraction', $combo->modifier, $self->_last_down_mult);
-      $self->clear_last_down;
-      $self->clear_last_down_mult;
+      $self->retract_last_down();
     }
   }
   return 1;
+}
+
+sub _track_last_down{
+  my ($self, $val) = @_;
+  if ($val < 128){ # ascii ~~ key retractables.
+    my $ch = lc chr $val;
+    if (defined($self->_last_down) and $self->_last_down eq $ch){
+      $self->inc_last_down_mult;
+    } else {
+      $self->_last_down($ch);
+      $self->clear_last_down_mult;
+      $self->inc_last_down_mult;
+    }
+  }
 }
 
 # should just be for modifiers that would insert text
@@ -167,11 +188,32 @@ has _last_down_mult => (
     inc_last_down_mult => 'inc',
   },
 );
+sub retract_last_down{
+  my $self = shift;
+  my $ch = $self->_last_down;
+  say "retracting. ch: $ch, mult: ". $self->_last_down_mult;
+  $self->blurp('retraction', $ch, $self->_last_down_mult);
+  $self->clear_last_down;
+  $self->clear_last_down_mult;
+}
 
 sub do_release_event{
   my ($self,$e) = @_;
   my $val = $e->keyval;
-  #my $key_text = Gtk3::Gdk::keyval_to_unicode($val);
+  delete $self->_keys_down->{$val};
+
+  # possibly trigger the pending hotkey combo
+  # drop the pending combo either way
+  # why keep it? It's a release evet.
+  if ($self->_pending_combo){
+    if ($val == $self->_pending_combo->keycode){
+      $self->retract_last_down;
+      $self->_retract_pending_combo_retractables;
+      $self->_pending_combo->cb->();
+    }
+    $self->_drop_pending_combo;
+  }
+
   if ($val < 128){
     my $ch = lc chr($val);
     if (defined($self->_last_down) and ($self->_last_down eq $ch)){
@@ -179,7 +221,30 @@ sub do_release_event{
       $self->clear_last_down_mult;
     }
   }
-  delete $self->_keys_down->{$val};
+}
+has _pending_timeout_i => (is => 'rw',isa => 'Int', clearer => '_foo4');
+has _pending_combo => (
+  is => 'rw',isa => 'Wordbath::App::ArbitKeys::Combo', clearer => '_foo3',
+  predicate => 'combo_pending');
+has _pending_char_retraction => (is => 'rw',isa => 'Str', clearer => '_foo2');
+has _pending_char_mult => (is => 'rw',isa => 'Int', clearer => '_foo1');
+sub _drop_pending_combo{
+  my $self = shift;
+  return unless $self->combo_pending;
+  $self->_foo1;
+  $self->_foo2;
+  $self->_foo3;
+  Glib::Source->remove($self->_pending_timeout_i);
+  $self->_foo4;
+}
+sub _retract_pending_combo_retractables{
+  my $self = shift;
+  return unless $self->combo_pending;
+  my $ch = $self->_pending_char_retraction;
+  my $mult= $self->_pending_char_mult;
+  say "retracting (was pending). ch: $ch, mult: ". $mult;
+  $self->blurp('retraction', $ch, $mult);
+  # insignificant: foo2; foo1;
 }
 1;
 
