@@ -192,7 +192,7 @@ sub get_text_pos{
     @anchors = sort {$a->pos_ns <=> $b->pos_ns} @anchors;
     # PDL interpolate breaks with duplicates.
     my %uniq;
-    @anchors = grep {!$uniq{$_}++} @anchors;
+    @anchors = grep {!$uniq{$_->pos_ns}++} @anchors;
 
     my $x = float(map {$_->pos_ns} @anchors);
     my $y = float(map {$_->pos_chars} @anchors);
@@ -205,10 +205,19 @@ sub get_text_pos{
   sub audio_pos_ns_at{
     my $self = shift;
     my $iter = shift;
-  }
-  sub sync_seek_text_cursor{
-    my $self = shift;
+    $iter = $self->transcript->cursor_iter unless $iter;
 
+    my @anchors = @{$self->_pseuso_anchors};
+    return 0 if (@anchors == 0);
+    my %uniq;
+    @anchors = grep {!$uniq{$_->pos_chars}++} @anchors;
+    @anchors = sort {$a->pos_chars <=> $b->pos_chars} @anchors;
+
+    my $x = float(map {$_->pos_chars} @anchors);
+    my $y = float(map {$_->pos_ns} @anchors);
+    my $xi = pdl($iter->get_offset);
+    my $pos_ns = $xi->interpol($x,$y);
+    return $pos_ns->sclr;
   }
 }
 
@@ -238,6 +247,10 @@ sub _insert_pseudo_anchor_here_at_pos{
   my $mname;# = 'slabel_anchor:'.$args{pos_ns};
   my $new_mark = $buf->create_mark($mname, $iter, 1);;
   $self->audiosync->anchor_here_at (mark => $new_mark, pos_ns => $args{pos_ns});
+}
+sub audio_pos_ns_at_cursor{
+  my $self = shift;
+  return $self->audiosync->audio_pos_ns_at;
 }
 
 sub sync_text_to_pos_ns{

@@ -186,14 +186,6 @@ sub rel_seek{
   my ($self, $secs) = @_;
   $self->player->shift_seconds($secs);
 }
-sub seek_text_from_audio{
-  my $self = shift;
-  say 'TODO: Move text cursor.';
-}
-sub seek_audio_from_text{
-  my $self = shift;
-  say 'TODO: seek audio position.';
-}
 
 
 # css.
@@ -295,6 +287,11 @@ sub _build_arbitkeys{
   # <t>ext (s)eek-sync to audio pos
   $keys->handle( keycombo => '<t>s', cb => sub{
       $self->transcript->sync_text_to_pos_ns( $self->player->pos_ns) ; return 1});
+  $keys->handle( keycombo => '<a>s', cb => sub{
+      my $pos_ns = $self->transcript->audio_pos_ns_at_cursor;
+      $self->player->seek_ns($pos_ns);
+      return 1;
+    });
 
   return $keys;
 }

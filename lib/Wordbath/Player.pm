@@ -104,8 +104,12 @@ sub set_rate{
 
 sub seek_sec{
   my ($self, $sec) = @_;
-  GST_LOG "seeking to $sec.";
-  $self->pipeline->seek($self->_rate, 'time', [qw/flush accurate/], set => $sec*10**9, none => -1);
+  $self->seek_ns($sec * 10**9);
+}
+sub seek_ns{
+  my ($self, $ns) = @_;
+  GST_LOG "seeking to ns $ns.";
+  $self->pipeline->seek($self->_rate, 'time', [qw/flush accurate/], set => $ns, none => -1);
 }
 sub shift_seconds{
   my ($self, $sec) = @_;
