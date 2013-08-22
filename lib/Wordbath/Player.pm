@@ -8,17 +8,7 @@ use Carp;
 #gstreamer stuff in this module.
 #todo: subband sinusoidal modeling?
 
-sub LOG{
-  my ($cat, $msg) = @_;
-}
-sub DEBUG{
-  my ($msg) = @_;
-  LOG(debug => $msg);
-}
-sub GST_LOG{
-  my ($msg) = @_;
-  LOG(gstreamer => $msg);
-}
+has logger => (is => 'ro', isa => 'Log::Fast', default => sub{Log::Fast->global()});
 
 sub BILLION{10**9}
 
@@ -66,7 +56,7 @@ sub _build_pipeline{
     });
   $bus->signal_connect('message::state-changed', sub{
       my ($bus,$msg) = @_;
-      GST_LOG ($msg->src .' state changed: ' . $msg->old_state .'  ===>  '. $msg->new_state);
+      $self->logger->DEBUG('GST  ' . $msg->src .' state changed: ' . $msg->old_state .'  ===>  '. $msg->new_state);
     });
   #$self->_nl_src->link($self->_stretcher_element);
   #$self->_stretcher_element->link($self->_audio_out);
@@ -97,7 +87,7 @@ sub set_rate{
   my ($self, $rate) = @_;
   my $pos = $self->pos_ns();
   $pos = 0 unless $pos;
-  GST_LOG ("Seeking: pos is $pos, new rate is $rate.");
+  $self->logger->DEBUG('GST  ' . "Seeking: pos is $pos, new rate is $rate.");
   $self->pipeline->seek($rate, 'time', [qw/flush accurate/], set => $pos, none => -1);
   $self->_rate($rate);
 }
@@ -108,12 +98,12 @@ sub seek_sec{
 }
 sub seek_ns{
   my ($self, $ns) = @_;
-  GST_LOG "seeking to ns $ns.";
+  $self->logger->DEBUG('GST  ' . "seeking to ns $ns.");
   $self->pipeline->seek($self->_rate, 'time', [qw/flush accurate/], set => $ns, none => -1);
 }
 sub shift_seconds{
   my ($self, $sec) = @_;
-  GST_LOG "relative seek $sec seconds.";
+  $self->logger->DEBUG('GST  ' .  "relative seek $sec seconds.");
   $self->pipeline->seek($self->_rate, 'time', [qw/flush accurate/],
     set => $self->pos_ns + $sec*10**9,
     none => -1);
@@ -151,7 +141,7 @@ sub _load_audio_file{
   $self->pipeline;
   # src.set_property('uri', 'file:///my/cool/video')
   my $pathuri = "file://$Bin/$f";
-  GST_LOG "loading URI: $pathuri";
+  $self->logger->DEBUG('GST  ' .  "loading URI: $pathuri");
   $self->_nl_src->set(location => $f);
   $self->pipeline->set_state('paused');
   $self->pipeline->get_state(10**9);
@@ -161,17 +151,17 @@ sub play{
   $self->pipeline->set_state('playing');
   #$self->_nl_src->set('media-start' => 0);
   #$self->_nl_src->set('media-duration' => 5*BILLION);
-  GST_LOG 'PLAYING';
+  $self->logger->DEBUG('GST  ' .  'PLAYING');
 }
 sub shut_down{
   my ($self) = @_;
   $self->pipeline->set_state('null');
-  GST_LOG 'SHUTTING DOWN. (pipeline state to null.)';
+  $self->logger->DEBUG('GST  ' . 'SHUTTING DOWN. (pipeline state to null.)');
 }
 sub toggle_play_state{
   my ($self) = @_;
   my @state = ($self->pipeline->get_state(10**9));
-  GST_LOG 'TOGGLING. '. $state[1];
+  $self->logger->DEBUG('GST  ' .  'TOGGLING. '. $state[1]);
   if ($state[1] eq 'playing'){
     $self->pipeline->set_state('paused');
   } else {
