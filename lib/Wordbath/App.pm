@@ -506,6 +506,7 @@ sub save_text{
 
   write_file($file_path, {binmode => ':utf8'}, $txt);
   $self->logger->NOTICE("wrote to $file_path");
+  say("wrote to $file_path");
 }
 sub _text_file_path{
   my $self = shift;
