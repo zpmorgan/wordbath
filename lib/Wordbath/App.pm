@@ -29,7 +29,7 @@ has win => (
 has transcript => (
   isa => 'Wordbath::Transcript',
   is => 'rw',
-  builder => '_build_tsv',
+  builder => '_build_transcript',
   lazy => 1,
 );
 
@@ -434,9 +434,10 @@ sub update_clock{
   return 1;
 }
 
-sub _build_tsv{
+sub _build_transcript{
   my $self = shift;
   my $transcript = Wordbath::Transcript->new();
+  $transcript->audiosync->player($self->player);
   $transcript->whenever(pos_change => \&update_txt_pos_lbl, $self);
   return $transcript;
 }

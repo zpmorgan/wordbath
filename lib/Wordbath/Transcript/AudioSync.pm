@@ -20,15 +20,29 @@ use Moose;
 has _pseuso_anchors => (
   is => 'rw',
   isa => 'ArrayRef',
-  default => sub{[]},
   traits => ['Array'],
   handles => {
     _pseudo_anchor_push => 'push',
   },
+  lazy => 1,
+  builder => '_initial_anchors',
 );
 has transcript => (weak_ref => 1, isa => 'Wordbath::Transcript', is => 'ro');
+has player => (weak_ref => 1, isa => 'Wordbath::Player', is => 'rw'); #please set this.
 no Moose;
 # conflicts with PDL's  'inner' exported symbol
+
+
+sub _initial_anchors{
+  my $self = shift;
+  my $buf = $self->transcript->_buf;
+  my ($si,$ei) = $buf->get_bounds;
+  my $s = $buf->create_mark("start pa", $si, 1);
+  my $e = $buf->create_mark("end pa",   $ei, 1);
+  my $spa = Wordbath::Transcript::AudioSync::Anchor->new(pos_ns => 0, mark => $s);
+  my $epa = Wordbath::Transcript::AudioSync::Anchor->new(pos_ns => $self->player->dur_ns, mark => $e);
+  return [$spa, $epa];
+}
 
 sub anchor_here_at{
   my $self = shift;
