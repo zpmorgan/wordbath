@@ -180,7 +180,9 @@ has _timeout_i => (is => 'rw', isa => 'Int');
 
 sub play_pause{
   my $self = shift;
-  $self->player->toggle_play_state;
+  my $new_state = $self->player->toggle_play_state;
+  my $pa_type = $new_state eq 'playing' ? 'go' : 'stop';
+  $self->transcript->insert_pseudo_anchor_here_at_pos(type => $pa_type);
 }
 sub rel_seek{
   my ($self, $secs) = @_;

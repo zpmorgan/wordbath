@@ -162,15 +162,15 @@ sub cursor_iter{
   return $iter;
 }
 
-sub _insert_pseudo_anchor_here_at_pos{
+sub insert_pseudo_anchor_here_at_pos{
   my $self = shift;
   my %args = @_;
-  return unless $args{pos_ns};
+  die unless $args{type};
   my $buf = $self->_buf;
   my $iter = $self->cursor_iter;
-  my $mname;# = 'slabel_anchor:'.$args{pos_ns};
+  my $mname;# undef...no naming conflict at least.
   my $new_mark = $buf->create_mark($mname, $iter, 1);;
-  $self->audiosync->anchor_here_at (mark => $new_mark, pos_ns => $args{pos_ns});
+  $self->audiosync->anchor_here_at (type => $args{type}, mark => $new_mark);#, pos_ns => $args{pos_ns});
 }
 sub audio_pos_ns_at_cursor{
   my $self = shift;
@@ -229,7 +229,7 @@ sub collect_slabels{
 
 sub next_slabel_in_text{
   my $self = shift;
-  my %args = @_;
+  #my %args = @_;
   my $txt = $self->current_text;
   my $lst_lbl = $self->_last_tried_slabel;
   if ($lst_lbl and $txt =~ /\Q$lst_lbl\E:\s+$/){
@@ -247,7 +247,7 @@ sub next_slabel_in_text{
   }
   else {
     $self->logger->INFO( 'collecting speaker label');
-    $self->_insert_pseudo_anchor_here_at_pos(pos_ns => $args{pos_ns} );;
+    $self->insert_pseudo_anchor_here_at_pos(type => 'slabel');#pos_ns => $args{pos_ns} );;
     $self->collect_slabels;
     my $next_lbl = $self->_next_untried_slabel;
     $self->_append_slabel($next_lbl);

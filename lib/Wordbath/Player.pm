@@ -161,12 +161,10 @@ sub shut_down{
 sub toggle_play_state{
   my ($self) = @_;
   my @state = ($self->pipeline->get_state(10**9));
-  $self->logger->DEBUG('GST  ' .  'TOGGLING. '. $state[1]);
-  if ($state[1] eq 'playing'){
-    $self->pipeline->set_state('paused');
-  } else {
-    $self->pipeline->set_state('playing');
-  }
+  my $new_state = ($state[1] eq 'playing') ? 'paused' : 'playing';
+  $self->pipeline->set_state($new_state);
+  $self->logger->DEBUG('GST  ' .  'TOGGLING. '. $state[1] . ' to ' . $new_state);
+  return $new_state;
 }
 
 1;

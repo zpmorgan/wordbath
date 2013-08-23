@@ -7,13 +7,15 @@ use Moose;
   has mark => (is => 'ro', isa => 'Gtk3::TextMark', required => 1);
   has pos_ns => (is => 'ro', isa => 'Int', required => 1);
   has time_placed => (is => 'ro', isa => 'Int', default => sub{time});
+  # slabel, ile, on-stop, on-go
+  has type => (is => 'ro', isa => 'Str', default => 'none');
   sub pos_chars{
     my $self = shift;
     my $textiter = $self->mark->get_buffer->get_iter_at_mark ($self->mark);
     my $chars = $textiter->get_offset;
     return $chars;
   }
-
+  __PACKAGE__->meta->make_immutable;
 }
 
 # TODO: anchor stuff might belong in Wordbath::SpaceTime :)
@@ -39,17 +41,27 @@ sub _initial_anchors{
   my ($si,$ei) = $buf->get_bounds;
   my $s = $buf->create_mark("start pa", $si, 1);
   my $e = $buf->create_mark("end pa",   $ei, 1);
-  my $spa = Wordbath::Transcript::AudioSync::Anchor->new(pos_ns => 0, mark => $s);
-  my $epa = Wordbath::Transcript::AudioSync::Anchor->new(pos_ns => $self->player->dur_ns, mark => $e);
+  my $spa = Wordbath::Transcript::AudioSync::Anchor->new(type => '-ile',
+        pos_ns => 0, mark => $s);
+  my $epa = Wordbath::Transcript::AudioSync::Anchor->new(type => '-ile',
+        pos_ns => $self->player->dur_ns, mark => $e);
   return [$spa, $epa];
 }
 
 sub anchor_here_at{
   my $self = shift;
   my %args = @_;
-  die 'need time. '.@_ unless $args{pos_ns};
+  #die 'need time. '.@_ unless $args{pos_ns};
+  die 'need anchor type. '.@_ unless $args{type};
+  unless ($args{pos_ns}){
+    $args{pos_ns} = $self->player->pos_ns;
+  }
   die 'need mark. '.@_ unless $args{mark};
-  my $pa = Wordbath::Transcript::AudioSync::Anchor->new(pos_ns => $args{pos_ns}, mark => $args{mark});
+  my $pa = Wordbath::Transcript::AudioSync::Anchor->new(
+    type => $args{type},
+    pos_ns => $args{pos_ns},
+    mark => $args{mark}
+  );
   $self->_pseudo_anchor_push($pa);
 }
 
