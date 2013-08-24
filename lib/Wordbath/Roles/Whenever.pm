@@ -1,4 +1,4 @@
-package Wordbath::Whenever;
+package Wordbath::Roles::Whenever;
 use Moose::Role;
 use Modern::Perl;
 use Array::Compare;

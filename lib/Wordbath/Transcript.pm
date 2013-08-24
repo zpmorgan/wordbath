@@ -3,8 +3,8 @@ use Moose;
 use Modern::Perl;
 use Wordbath::Transcript::AudioSync;
 
-with 'Wordbath::Whenever';
-Wordbath::Whenever->import();;
+with 'Wordbath::Roles::Whenever';
+Wordbath::Roles::Whenever->import();;
 signal ('pos_change');
 
 has logger => (is => 'ro', isa => 'Log::Fast', default => sub{Log::Fast->global()});

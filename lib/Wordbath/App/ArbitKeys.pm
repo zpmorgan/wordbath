@@ -3,8 +3,8 @@ use Moose;
 use Modern::Perl;
 use Time::HiRes qw/time/;
 
-with 'Wordbath::Whenever';
-Wordbath::Whenever->import();
+with 'Wordbath::Roles::Whenever';
+Wordbath::Roles::Whenever->import();
 # 'retraction' is spewed when the previous keypress
 # turns out to be a modifier.
 signal ('retraction');

@@ -4,8 +4,8 @@ use Modern::Perl;
 use utf8;
 #use Gtk3;
 
-with 'Wordbath::Whenever';
-Wordbath::Whenever->import();;
+with 'Wordbath::Roles::Whenever';
+Wordbath::Roles::Whenever->import();;
 signal ('ignoring');
 
 has widget => (
