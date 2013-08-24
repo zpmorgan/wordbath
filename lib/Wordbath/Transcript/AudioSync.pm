@@ -15,6 +15,29 @@ use Moose;
     my $chars = $textiter->get_offset;
     return $chars;
   }
+
+  my @freezable_attrs = qw/type time_placed pos_ns/;
+  sub to_hash{
+    my $self = shift;
+    my %struct = (
+      pos_chars => $self->pos_chars,
+      pos_ns => $self->pos_ns,
+      time_placed => $self->time_placed,
+      type => $self->type,
+    );
+    return \%struct;
+  }
+  sub from_hash{
+    my ($class, $hash, $buf) = @_;
+    die 'need buf' unless $buf;
+    my $i = $buf->get_iter_at_offset($hash->{pos_chars});
+    my $m = $buf->create_mark(undef, $i, 1);
+    my $syncvector = __PACKAGE__->new(
+      mark => $m, type => $hash->{type},
+      pos_ns => $hash->{pos_ns}, time_placed => $hash->{time_placed}
+    );
+    return $syncvector;
+  }
   __PACKAGE__->meta->make_immutable;
 }
 
@@ -26,16 +49,31 @@ has _sync_vectors => (
     _sync_vector_push => 'push',
   },
   lazy => 1,
-  builder => '_root_sync_vectors',
+  builder => '_build_sync_vectors',
 );
 has transcript => (weak_ref => 1, isa => 'Wordbath::Transcript', is => 'ro');
 has player => (weak_ref => 1, isa => 'Wordbath::Player', is => 'rw'); #please set this.
+
+has from_hash => (is => 'ro', isa => 'HashRef');
+
+sub to_hash{
+  my $self = shift;
+  my $SVs = $self->_sync_vectors;
+  my @svector_hashes = map {$_->to_hash} @$SVs;
+  return {sync_vectors => \@svector_hashes};
+}
+
 no Moose;
 # conflicts with PDL's  'inner' exported symbol
 
 
-sub _root_sync_vectors{
+sub _build_sync_vectors{
   my $self = shift;
+  if ($self->from_hash){
+    my $SV_hashes = $self->from_hash->{_sync_vectors};
+    my @svectors = map {Wordbath::Transcript::AudioSync::SyncVector->from_hash($_)} @$SV_hashes;
+    return \@svectors;
+  }
   my $buf = $self->transcript->_buf;
   my ($si,$ei) = $buf->get_bounds;
   my $s = $buf->create_mark("start pa", $si, 1);
@@ -103,9 +141,4 @@ sub audio_pos_ns_at{
   return $pos_ns->sclr;
 }
 
-use JSON;
-sub serialize{
-  my $self = shift;
-  return encode_json {};
-}
 1;

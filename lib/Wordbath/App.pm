@@ -507,10 +507,11 @@ sub save_all{
   $self->save_text();
   $self->save_data();
 }
+use JSON;
 sub save_data{
   my $self = shift;
   my $file_path = $self->_data_file_path();
-  my $json = $self->transcript->audiosync->serialize;
+  my $json = encode_json ($self->transcript->audiosync->to_hash);
   write_file($file_path, {binmode => ':utf8'}, $json);
   $self->logger->NOTICE("wrote sync vectors to $file_path");
   say("wrote sync vectors to $file_path");
