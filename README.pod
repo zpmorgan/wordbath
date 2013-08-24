@@ -24,6 +24,8 @@ in the home row.
 
 =over 1
 
+=item * <shift>spacebar or <a>spacebar toggle play/pause
+
 =item * <F5> to cycle through speaker labels at the end.
 
 =item * <F7>, <F8> to slow down or speed up audio by 3 percent
@@ -34,11 +36,15 @@ in the home row.
 
 =item * <ctrl>z to recover from traumatic deletions
 
-=item * <ctrl>y to redo said deletions
+=item * <ctrl>y to redo undone traumatic deletions
 
 =item * <shift>leftarrow, <shift>rightarrow relative seek to -2,+2 seconds.
 
 =item * <s>j, <s>k, <s>l, <s>; relative seek to -5,-1,+1,+5 seconds.
+
+=item * <a>s, to <s>eek in Audio to cursor position.
+
+=item * <t>s, to <s>eek in Text to audio position.
 
 =back
 
@@ -46,17 +52,17 @@ in the home row.
 
 =over 1
 
+=item    * Use synchronization vectors for time stamping.
+
 =item    * Undo/Redo stack. (partially implemented)
 
 =item    * spell checking (partially implemented)
 
 =item    * Retroactive punctuation editing hotkeys
 
-=item    * loading of transcript text & other metadata, such as text-audio spacetime anchors.
+=item    * loading of transcript text & other metadata, such as text-audio synchronization vectors.
 
 =item    * a stack of transcription spacetime contexts.
-
-=item    * saved audio position in text location. (spacetime)
 
 =item    * Figure out a way to use capslock effectively.
 
