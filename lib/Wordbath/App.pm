@@ -182,7 +182,7 @@ sub play_pause{
   my $self = shift;
   my $new_state = $self->player->toggle_play_state;
   my $pa_type = $new_state eq 'playing' ? 'go' : 'stop';
-  $self->transcript->insert_pseudo_anchor_here_at_pos(type => $pa_type);
+  $self->transcript->insert_sync_vector_here_at_pos(type => $pa_type);
 }
 sub rel_seek{
   my ($self, $secs) = @_;

@@ -162,7 +162,7 @@ sub cursor_iter{
   return $iter;
 }
 
-sub insert_pseudo_anchor_here_at_pos{
+sub insert_sync_vector_here_at_pos{
   my $self = shift;
   my %args = @_;
   die unless $args{type};
@@ -170,7 +170,7 @@ sub insert_pseudo_anchor_here_at_pos{
   my $iter = $self->cursor_iter;
   my $mname;# undef...no naming conflict at least.
   my $new_mark = $buf->create_mark($mname, $iter, 1);;
-  $self->audiosync->anchor_here_at (type => $args{type}, mark => $new_mark);#, pos_ns => $args{pos_ns});
+  $self->audiosync->vector_here_at (type => $args{type}, mark => $new_mark);#, pos_ns => $args{pos_ns});
 }
 sub audio_pos_ns_at_cursor{
   my $self = shift;
@@ -247,7 +247,7 @@ sub next_slabel_in_text{
   }
   else {
     $self->logger->INFO( 'collecting speaker label');
-    $self->insert_pseudo_anchor_here_at_pos(type => 'slabel');#pos_ns => $args{pos_ns} );;
+    $self->insert_sync_vector_here_at_pos(type => 'slabel');#pos_ns => $args{pos_ns} );;
     $self->collect_slabels;
     my $next_lbl = $self->_next_untried_slabel;
     $self->_append_slabel($next_lbl);
