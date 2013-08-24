@@ -7,7 +7,7 @@ use FindBin '$Bin';
 use Pango;
 use File::Slurp;
 use lib 'lib';
-use Math::Roundeth;
+use Wordbath::Util;
 use Wordbath::Speller;
 use Wordbath::Transcript;
 use Wordbath::Config;
@@ -392,7 +392,7 @@ sub _adjust_rate {
   my ($self, $adj) = @_;
   my $prev_rate = $self->player->get_rate();
   my $next_rate = $prev_rate + $adj;
-  $next_rate = nearest (.01, $next_rate);
+  $next_rate = Wordbath::Util::round_nearest (.01, $next_rate);
   return if $next_rate < .03;
   $self->player->set_rate($next_rate);
   $self->_cur_rate_lbl->set_text(($next_rate * 100) . '%');
