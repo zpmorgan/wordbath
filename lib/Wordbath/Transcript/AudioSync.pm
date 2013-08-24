@@ -103,4 +103,10 @@ sub audio_pos_ns_at{
   my $pos_ns = $xi->interpol($x,$y);
   return $pos_ns->sclr;
 }
+
+use JSON;
+sub serialize{
+  my $self = shift;
+  return encode_json {};
+}
 1;

@@ -112,7 +112,7 @@ sub _build_win{
     $file_menuitem->set_submenu($file_menu);
 
     my @file_clickables = (
-      [Save => '<Control>S', sub{$self->save_text}],
+      [Save => '<Control>S', sub{$self->save_all}],
       ['Edit config' => undef, sub{ $self->config->launch_edit_window}],
       [Undo => '<Control>Z', sub{ $self->transcript->undo}],
       [Redo => '<Control>Y', sub{ $self->transcript->redo}],
@@ -500,6 +500,20 @@ sub please_quit{
   $self->logger->NOTICE('good bye.');
 }
 
+sub save_all{
+  my $self = shift;
+  $self->save_text();
+  $self->save_data();
+}
+sub save_data{
+  my $self = shift;
+  my $file_path = $self->_data_file_path();
+  my $json = $self->transcript->audiosync->serialize;
+  write_file($file_path, {binmode => ':utf8'}, $json);
+  $self->logger->NOTICE("wrote sync vectors to $file_path");
+  say("wrote sync vectors to $file_path");
+}
+
 sub save_text{
   my $self = shift;
   my $file_path = $self->_text_file_path();
@@ -515,6 +529,11 @@ sub _text_file_path{
   my $self = shift;
   my $audio_path = $self->_audio_path;
   return $audio_path . '.txt';
+}
+sub _data_file_path{
+  my $self = shift;
+  my $audio_path = $self->_audio_path;
+  return $audio_path . '.wb';
 }
 
 use Log::Fast;
