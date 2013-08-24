@@ -12,6 +12,8 @@ use Wordbath::Speller;
 use Wordbath::Transcript;
 use Wordbath::Config;
 
+with 'Wordbath::Roles::Logger';
+
 my $LOOP; # ?
 $LOOP = Glib::MainLoop->new();
 
@@ -536,8 +538,6 @@ sub _data_file_path{
   return $audio_path . '.wb';
 }
 
-use Log::Fast;
-has logger => (is => 'ro', isa => 'Log::Fast', default => sub{Log::Fast->global()});
 sub log_to_file{
   my ($self, $path) = @_;
   open (my $fh, ">$path");

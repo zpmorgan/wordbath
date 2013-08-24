@@ -3,13 +3,12 @@ use Moose;
 use Modern::Perl;
 use Time::HiRes qw/time/;
 
+with 'Wordbath::Roles::Logger';
 with 'Wordbath::Roles::Whenever';
 Wordbath::Roles::Whenever->import();
 # 'retraction' is spewed when the previous keypress
 # turns out to be a modifier.
 signal ('retraction');
-
-has logger => (is => 'ro', isa => 'Log::Fast', default => sub{Log::Fast->global()});
 
 {
   package Wordbath::App::ArbitKeys::Combo;

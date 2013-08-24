@@ -8,7 +8,7 @@ use Carp;
 #gstreamer stuff in this module.
 #todo: subband sinusoidal modeling?
 
-has logger => (is => 'ro', isa => 'Log::Fast', default => sub{Log::Fast->global()});
+with 'Wordbath::Roles::Logger';
 
 sub BILLION{10**9}
 
