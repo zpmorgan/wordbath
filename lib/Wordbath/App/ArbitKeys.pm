@@ -131,7 +131,11 @@ sub do_press_event{ # gdk
         }
         my $to = Glib::Timeout->add ( $arbitthreshold_ms - $how_long_held, sub{
             $potent_combo->cb->();
-            #retract..
+            # retract pending retraction.
+            $self->retract_last_down;
+            $self->_retract_pending_combo_retractables;
+            $self->_drop_pending_combo;
+            return 0;
           });
         $self->_pending_timeout_i($to);
         $self->_track_last_down($val);
