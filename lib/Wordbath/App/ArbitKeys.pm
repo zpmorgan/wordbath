@@ -250,5 +250,21 @@ sub _retract_pending_combo_retractables{
   $self->blurp('retraction', $ch, $mult);
   # insignificant: foo2; foo1;
 }
+
+# return a string.
+sub infodump{
+  my $self = shift;
+  my $kd = join "\n", keys %{$self->_keys_down};
+  my $crap = join "\n", map{$_ .' | '. $self->{$_}} keys %$self;
+  my $combos = 'foo';
+
+  my $dump = <<"EOD";
+  KEYS DOWN: \n$kd\n\n
+  CRAP:\n$crap\n\n
+  COMBOS:\n$combos\n\n
+EOD
+  return $dump;
+}
+
 1;
 

@@ -118,6 +118,7 @@ sub _build_win{
       ['Edit config' => undef, sub{ $self->config->launch_edit_window}],
       [Undo => '<Control>Z', sub{ $self->transcript->undo}],
       [Redo => '<Control>Y', sub{ $self->transcript->redo}],
+      ['Keyboard Infodump' => '', sub{ say $self->_arbitkeys->infodump}],
       [Quit => '<Control>Q', sub{$self->please_quit}],
     );
     for (@file_clickables){
