@@ -31,19 +31,23 @@ has [qw/_nl_src _audio_out _dec _stretcher_element/] => (
   is => 'rw',
 );
 
+has x_overlay => (
+  is => 'rw',
+  isa => 'GStreamer::Element',
+  predicate => 'has_video',
+);
+
 my $fsrc;
 
 sub _build_pipeline{
   my $self = shift;
-  ##my $p = GStreamer::Pipeline->new('pipe_in');
   my $pipeline = GStreamer::parse_launch(
-    #   "gnlurisource name=gnlsrc ! ".
-    "filesrc name=gnlsrc ! decodebin2 name=derc !".
+    "filesrc name=my_file_src ! decodebin2 name=derc !".
     "queue ! audioconvert ! audioresample ! ".
     "scaletempo name=stempo ! ".
     "audioconvert ! audioresample ! ".
     "autoaudiosink name=speakers");
-  my $gnlsrc = $pipeline->get_by_name('gnlsrc');
+  my $my_file_src = $pipeline->get_by_name('my_file_src');
   my $stempo = $pipeline->get_by_name('stempo');
   my $speakers= $pipeline->get_by_name('speakers');
   my $dec= $pipeline->get_by_name('derc');
@@ -58,9 +62,7 @@ sub _build_pipeline{
       my ($bus,$msg) = @_;
       $self->logger->DEBUG('GST  ' . $msg->src .' state changed: ' . $msg->old_state .'  ===>  '. $msg->new_state);
     });
-  #$self->_nl_src->link($self->_stretcher_element);
-  #$self->_stretcher_element->link($self->_audio_out);
-  $gnlsrc->signal_connect ('pad-added' => sub{
+  $my_file_src->signal_connect ('pad-added' => sub{
       warn 'New pad.';
       my ($bin,$pad) = @_;
       my $snk = $dec->get_pad('sink');
@@ -72,7 +74,7 @@ sub _build_pipeline{
     });
 
   $self->_audio_out( $speakers );
-  $self->_nl_src( $gnlsrc );
+  $self->_nl_src( $my_file_src );
   $self->_stretcher_element( $stempo );
   $self->_dec( $dec);
   return $pipeline;
@@ -143,7 +145,7 @@ sub _load_audio_file{
   my $pathuri = "file://$Bin/$f";
   $self->logger->DEBUG('GST  ' .  "loading URI: $pathuri");
   $self->_nl_src->set(location => $f);
-  $self->pipeline->set_state('paused');
+  $self->pipeline->set_state('playing');
   $self->pipeline->get_state(10**9);
 }
 sub play{
