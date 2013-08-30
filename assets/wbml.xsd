@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+  <xsd:simpleType name="alignment-vector-classification">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="anchor"/>
+      <xsd:enumeration value="play"/>
+      <xsd:enumeration value="pause"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <xsd:complexType name="alignment-vector-type">
+    <xsd:attribute name="audio-pos-ns" type="xsd:integer" use="required"/>
+    <xsd:attribute name="time-marked-ns" type="xsd:integer"/>
+    <xsd:attribute name="classification" type="alignment-vector-classification" use="required"/>
+  </xsd:complexType>
+
+  <xsd:complexType mixed="true" name="paragraph-type">
+    <xsd:sequence>
+      <xsd:choice minOccurs="1">
+        <xsd:element name="speaker-event" type="xsd:string"/>
+        <xsd:element name="alignment-vector" type="alignment-vector-type"/>
+      </xsd:choice>
+    </xsd:sequence>
+    <xsd:attribute name="speaker" type="xsd:string"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="audio-source-type">
+    <xsd:attribute name="fs-path" type="xsd:string"/>
+    <xsd:attribute name="approx-dur-ns" type="xsd:integer"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="speaker-type">
+    <xsd:attribute name="id" type="xsd:string"/>
+    <xsd:attribute name="label-first" type="xsd:string"/>
+    <xsd:attribute name="label" type="xsd:string"/>
+  </xsd:complexType>
+
+  <xsd:element name="transcript">
+    <xsd:complexType>
+      <xsd:sequence>
+
+        <xsd:element name="speaker" type="speaker-type" minOccurs="1"/>
+
+        <xsd:choice minOccurs="1" maxOccurs="2">
+          <xsd:element name="paragraph" type="paragraph-type" minOccurs="1"/>
+          <xsd:element name="speakerless-event" type="xsd:string"/>
+        </xsd:choice>
+
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+</xsd:schema>
+
