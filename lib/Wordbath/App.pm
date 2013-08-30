@@ -482,7 +482,10 @@ sub load_audio_file{
   my ($self, $file) = @_;
   $self->_audio_path($file);
   $self->win; #generate widgets, if they don't exist yet.
+
+  $self->player->do_video($file =~ /(avi|mp4|qt)$/ ? 1 : 0); # sucks
   $self->player->_load_audio_file($file);
+
   $self->player->set_rate(1);
   my $dur_sec = $self->player->dur_ns / 10**9;
   $self->_natural_seekbar_value(0);

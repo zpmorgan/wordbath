@@ -36,17 +36,32 @@ has x_overlay => (
   isa => 'GStreamer::Element',
   predicate => 'has_video',
 );
+has do_video => ( #sucks
+  is => 'rw',
+  isa => 'Bool',
+);
 
 my $fsrc;
 
 sub _build_pipeline{
   my $self = shift;
-  my $pipeline = GStreamer::parse_launch(
-    "filesrc name=my_file_src ! decodebin2 name=derc !".
-    "queue ! audioconvert ! audioresample ! ".
+  # newer gstreamer uses videoconvert instead of ffmpegcolorspace?
+  # also, it doesn't fail on parse errors?
+  my $pipeline_description =
+    "filesrc name=my_file_src ! decodebin2 name=derc ".
+
+    "derc. ! queue ! audioconvert ! audioresample ! ".
     "scaletempo name=stempo ! ".
     "audioconvert ! audioresample ! ".
-    "autoaudiosink name=speakers");
+    "autoaudiosink name=speakers ";
+
+  if ($self->do_video){
+    $self->logger->INFO( 'doing video sink' );
+    $pipeline_description .=
+      "derc. ! ffmpegcolorspace ! autovideosink";
+  }
+  my $pipeline = GStreamer::parse_launch( $pipeline_description);
+  #autovideosink async-handling=true");
   my $my_file_src = $pipeline->get_by_name('my_file_src');
   my $stempo = $pipeline->get_by_name('stempo');
   my $speakers= $pipeline->get_by_name('speakers');
@@ -54,6 +69,10 @@ sub _build_pipeline{
 
   my $bus = $pipeline->get_bus();
   $bus->add_signal_watch;
+  $bus->signal_connect('message::warning', sub{
+      my ($bus,$msg) = @_;
+      warn 'warn: ' . $msg->warning;
+    });
   $bus->signal_connect('message::error', sub{
       my ($bus,$msg) = @_;
       warn 'err: ' . $msg->error;
@@ -146,7 +165,7 @@ sub _load_audio_file{
   $self->logger->DEBUG('GST  ' .  "loading URI: $pathuri");
   $self->_nl_src->set(location => $f);
   $self->pipeline->set_state('playing');
-  $self->pipeline->get_state(10**9);
+  warn $self->pipeline->get_state(10**9);
 }
 sub play{
   my ($self) = @_;
