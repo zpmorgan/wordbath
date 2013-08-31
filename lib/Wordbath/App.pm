@@ -116,8 +116,8 @@ sub _build_win{
     my @file_clickables = (
       [Save => '<Control>S', sub{$self->save_all}],
       ['Edit config' => undef, sub{ $self->config->launch_edit_window}],
-      [Undo => '<Control>Z', sub{ $self->transcript->undo}],
-      [Redo => '<Control>Y', sub{ $self->transcript->redo}],
+      [Undo => '<Control>Z', sub{ $self->transcript->model->undo}],
+      [Redo => '<Control>Y', sub{ $self->transcript->model->redo}],
       ['Keyboard Infodump' => undef, sub{ say $self->_arbitkeys->infodump}],
       [Quit => '<Control>Q', sub{$self->please_quit}],
     );

@@ -48,6 +48,24 @@ sub _on_buf_changed{
   my ($line, $col) = $self->get_text_pos();
   $self->logger->DEBUG("buf 'changed' event. Cursor: line $line, col $col");
 }
+#misc callbacks. mark-set seems to be kind of a catch-all.
+sub on_delete_range{
+  my ($self, $start,$end, $buf) = @_;
+  return if $self->undo_suppressed;
+
+  my $txt = $buf->get_text($start,$end, 1);
+  my $s = $buf->create_mark(undef, $start, 1);
+  my $e = $buf->create_mark(undef, $start, 0);
+  my $undo_sub = sub{
+    my $i = $buf->get_iter_at_mark($s);
+    $buf->insert($i,$txt)
+  };
+  my $redo_sub = sub{
+    my @i = map {$buf->get_iter_at_mark($_)} ($s,$e);
+    $buf->delete(@i)
+  };
+  $self->dodo(undo_sub => $undo_sub, redo_sub => $redo_sub);
+}
 
 sub _on_pos_change{
   my $self = shift;
