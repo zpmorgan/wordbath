@@ -48,6 +48,7 @@ sub _build_scrolled_widget{
   my $wordbox = Gtk3::TextView->new();
   my $buf = $wordbox->get_buffer;
   $self->model(Wordbath::Transcript::Model->new(buf => $buf));
+  $self->model->whenever('end_activity' => \&scroll_to_end, $self);
 
   $wordbox->set_wrap_mode('word');
   $scrolled->add($wordbox);

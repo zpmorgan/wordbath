@@ -185,7 +185,7 @@ sub play_pause{
   my $self = shift;
   my $new_state = $self->player->toggle_play_state;
   my $pa_type = $new_state eq 'playing' ? 'go' : 'stop';
-  $self->transcript->insert_sync_vector_here_at_pos(type => $pa_type);
+  $self->transcript->model->insert_sync_vector_here_at_pos(type => $pa_type);
 }
 sub rel_seek{
   my ($self, $secs) = @_;
@@ -281,17 +281,17 @@ sub _build_arbitkeys{
     $keys->handle( keycombo => $foo->[0], cb => sub{$self->rel_seek($foo->[1])} );
   }
   $keys->handle( keycombo => 'F5', cb => sub{ 
-      $self->transcript->next_slabel_in_text(pos_ns => $self->player->pos_ns);
+      $self->transcript->model->next_slabel_in_text(pos_ns => $self->player->pos_ns);
       return 1});
   $keys->handle( keycombo => 'F7', cb => sub{ $self->_adjust_rate(-.03); return 1});
   $keys->handle( keycombo => 'F8', cb => sub{ $self->_adjust_rate(+.03); return 1});
   $keys->handle( keycombo => '<a>space', cb => sub{ $self->play_pause; return 1});
-  $keys->whenever(retraction => sub{ shift;$self->transcript->arbitrary_text_retraction(@_) }, $self);
+  $keys->whenever(retraction => sub{ shift;$self->transcript->model->arbitrary_text_retraction(@_) }, $self);
   # <t>ext (s)eek-sync to audio pos
   $keys->handle( keycombo => '<t>s', cb => sub{
-      $self->transcript->sync_text_to_pos_ns( $self->player->pos_ns) ; return 1});
+      $self->transcript->model->sync_text_to_pos_ns( $self->player->pos_ns) ; return 1});
   $keys->handle( keycombo => '<a>s', cb => sub{
-      my $pos_ns = $self->transcript->audio_pos_ns_at_cursor;
+      my $pos_ns = $self->transcript->model->audio_pos_ns_at_cursor;
       $self->player->seek_ns($pos_ns);
       return 1;
     });

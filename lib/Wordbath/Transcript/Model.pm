@@ -6,6 +6,7 @@ with 'Wordbath::Roles::Logger';
 with 'Wordbath::Roles::Whenever';
 Wordbath::Roles::Whenever->import();;
 signal ('pos_change');
+signal ('end_activity');
 
 has buf => (
   is => 'ro',
@@ -219,7 +220,8 @@ sub _append_slabel{
   $append_text .= "\n\n" if $end->copy->backward_char; #at the beginning?
   $append_text .= "$next_lbl: ";
   $buf->insert($end, $append_text);
-  $self->scroll_to_end();
+  #$self->scroll_to_end();
+  $self->blurp('end_activity');
   $self->_last_tried_slabel($next_lbl);
 }
 
