@@ -427,6 +427,7 @@ sub update_clock{
   my $clock_label = $clock->get_child;
   my $pos_ns = $self->player->pos_ns;
   my $dur_ns = $self->player->dur_ns;
+  $self->known_duration_ns( $dur_ns);
   my $pos_sec = int ($pos_ns / 10**9);
   my $dur_sec = int ($dur_ns / 10**9);
   my $new_clock_text = _fmt_time_sec($pos_sec) .' / '. _fmt_time_sec($dur_sec);
@@ -478,19 +479,24 @@ sub run{
   #Gtk3::main;
 }
 
+has known_duration_ns => (
+  is => 'rw', isa=>'Int', trigger => sub{
+    my ($self, $dur_ns, $old) = @_;
+    return if !$dur_ns or $old;
+    $self->logger->INFO("setting seekbar dur to $dur_ns / billion.");
+    $self->_natural_seekbar_value(0);
+    $self->_seekbar->set_range( 0, int ($dur_ns / 10**9));
+    $self->_seekbar->set_value( 0 );
+  });
+
 sub load_audio_file{
   my ($self, $file) = @_;
   $self->_audio_path($file);
   $self->win; #generate widgets, if they don't exist yet.
 
-  $self->player->do_video($file =~ /(avi|mp4|qt)$/ ? 1 : 0); # sucks
   $self->player->_load_audio_file($file);
-
   $self->player->set_rate(1);
-  my $dur_sec = $self->player->dur_ns / 10**9;
-  $self->_natural_seekbar_value(0);
-  $self->_seekbar->set_range( 0, int $dur_sec );
-  $self->_seekbar->set_value( 0 );
+  $self->known_duration_ns( $self->player->dur_ns);
 }
 
 sub play{

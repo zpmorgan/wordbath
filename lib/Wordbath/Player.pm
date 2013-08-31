@@ -3,7 +3,7 @@ use Moose;
 use Modern::Perl;
 use GStreamer -init;
 use FindBin '$Bin';
-use Carp;
+use Carp 'cluck';
 
 #gstreamer stuff in this module.
 #todo: subband sinusoidal modeling?
@@ -36,10 +36,6 @@ has x_overlay => (
   isa => 'GStreamer::Element',
   predicate => 'has_video',
 );
-has do_video => ( #sucks
-  is => 'rw',
-  isa => 'Bool',
-);
 
 my $fsrc;
 
@@ -48,24 +44,53 @@ sub _build_pipeline{
   # newer gstreamer uses videoconvert instead of ffmpegcolorspace?
   # also, it doesn't fail on parse errors?
   my $pipeline_description =
-    "filesrc name=my_file_src ! decodebin2 name=derc ".
-
+    "filesrc name=my_file_src ! typefind name=typer ! fakesink name=fake ".
+    "decodebin2 name=derc ".
+    # all media is assumed to contain audio. that's the point.
     "derc. ! queue ! audioconvert ! audioresample ! ".
     "scaletempo name=stempo ! ".
     "audioconvert ! audioresample ! ".
     "autoaudiosink name=speakers ";
 
-  if ($self->do_video){
-    $self->logger->INFO( 'doing video sink' );
-    $pipeline_description .=
-      "derc. ! ffmpegcolorspace ! autovideosink";
-  }
   my $pipeline = GStreamer::parse_launch( $pipeline_description);
   #autovideosink async-handling=true");
   my $my_file_src = $pipeline->get_by_name('my_file_src');
   my $stempo = $pipeline->get_by_name('stempo');
   my $speakers= $pipeline->get_by_name('speakers');
   my $dec= $pipeline->get_by_name('derc');
+  my $fake= $pipeline->get_by_name('fake');
+
+  # create video elements if the media is found to contain video.
+  my $typer = $pipeline->get_by_name('typer');
+  $typer->signal_connect('have-type' => sub{
+      my ($tfind, $probability, $caps) = @_;
+      $self->logger->INFO ("CAPS: $caps");
+      if ($caps =~ /^video/){
+        $self->logger->INFO ("doing video pipeline things");
+        my $conv  = GStreamer::ElementFactory->make(ffmpegcolorspace => 'vconv');
+        my $vsink = GStreamer::ElementFactory->make(autovideosink => 'vsink');
+        $self->x_overlay($vsink);
+        $pipeline->add($conv,$vsink);
+        $conv->link($vsink) or die "vconv/sink linklessness";
+        $dec->signal_connect ('pad-added' => sub{
+            my ($bin,$pad) = @_;
+            # huh? we're assuming that this is video?
+            $self->logger->INFO ('New pad on decodebin2 for video...');
+            my $snk = $conv->get_static_pad('sink');
+            if ($snk->is_linked()){
+              warn 'Pad already linked' if $snk->is_linked();
+              return;
+            }
+            $pad->link($snk);
+          });
+      }
+      $my_file_src->unlink($typer);
+      $typer->unlink($fake);
+      $pipeline->remove($typer);
+      $pipeline->remove($fake);
+      $my_file_src->link($dec);
+      $pipeline->get_state(10**9);
+    });
 
   my $bus = $pipeline->get_bus();
   $bus->add_signal_watch;
@@ -148,9 +173,8 @@ sub dur_ns{
     my $dur= ($q->duration)[1];
     return $dur;
   }
-  else {
-    confess 'could not query duration.';
-  }
+  warn 'could not query duration.';
+  return 0
 }
 sub print_status{
   my $self = shift;
