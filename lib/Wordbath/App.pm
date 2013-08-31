@@ -443,8 +443,8 @@ sub update_clock{
 sub _build_transcript{
   my $self = shift;
   my $transcript = Wordbath::Transcript->new();
-  $transcript->audiosync->player($self->player);
-  $transcript->whenever(pos_change => \&update_txt_pos_lbl, $self);
+  $transcript->model->audiosync->player($self->player);
+  $transcript->model->whenever(pos_change => \&update_txt_pos_lbl, $self);
   return $transcript;
 }
 
@@ -517,20 +517,22 @@ sub save_all{
   $self->save_text();
   $self->save_data();
 }
-use JSON;
 sub save_data{
   my $self = shift;
-  my $file_path = $self->_data_file_path();
-  my $json = encode_json ($self->transcript->audiosync->to_hash);
-  write_file($file_path, {binmode => ':utf8'}, $json);
-  $self->logger->NOTICE("wrote sync vectors to $file_path");
-  say("wrote sync vectors to $file_path");
+  my $audio_path = $self->_audio_path;
+  my $vectors_file_path = $audio_path . '.wbvectors';
+  $self->transcript->model->save_vectors($vectors_file_path);
+  say("wrote sync vectors to $vectors_file_path");
+
+  my $wbml_path= $audio_path . '.wbml';
+  $self->transcript->model->save_wbml($wbml_path);
+  say("wrote wbml to $wbml_path");
 }
 
 sub save_text{
   my $self = shift;
   my $file_path = $self->_text_file_path();
-  my $txt = $self->transcript->current_text;
+  my $txt = $self->transcript->model->current_text;
   #make sure there's a newline at the end?
   $txt .= "\n" unless $txt =~ m|\n$|;
 
@@ -542,11 +544,6 @@ sub _text_file_path{
   my $self = shift;
   my $audio_path = $self->_audio_path;
   return $audio_path . '.txt';
-}
-sub _data_file_path{
-  my $self = shift;
-  my $audio_path = $self->_audio_path;
-  return $audio_path . '.wb';
 }
 
 sub log_to_file{

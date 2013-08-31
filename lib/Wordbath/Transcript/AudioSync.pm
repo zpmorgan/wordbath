@@ -51,7 +51,7 @@ has _sync_vectors => (
   lazy => 1,
   builder => '_build_sync_vectors',
 );
-has transcript => (weak_ref => 1, isa => 'Wordbath::Transcript', is => 'ro');
+has transcript_model => (weak_ref => 1, isa => 'Wordbath::Transcript::Model', is => 'ro');
 has player => (weak_ref => 1, isa => 'Wordbath::Player', is => 'rw'); #please set this.
 
 has from_hash => (is => 'ro', isa => 'HashRef');
@@ -74,7 +74,7 @@ sub _build_sync_vectors{
     my @svectors = map {Wordbath::Transcript::AudioSync::SyncVector->from_hash($_)} @$SV_hashes;
     return \@svectors;
   }
-  my $buf = $self->transcript->_buf;
+  my $buf = $self->transcript_model->buf;
   my ($si,$ei) = $buf->get_bounds;
   my $s = $buf->create_mark("start pa", $si, 1);
   my $e = $buf->create_mark("end pa",   $ei, 1);
@@ -108,7 +108,7 @@ use PDL;
 sub iter_at_audio_pos{
   my ($self, $pos_ns) = @_;
   my @SVs = @{$self->_sync_vectors};
-  my $buf = $self->transcript->_buf;
+  my $buf = $self->transcript_model->buf;
   return $buf->get_start_iter if (@SVs == 0);
   @SVs = sort {$a->pos_ns <=> $b->pos_ns} @SVs;
   # PDL interpolate breaks with duplicates.
@@ -126,7 +126,7 @@ sub iter_at_audio_pos{
 sub audio_pos_ns_at{
   my $self = shift;
   my $iter = shift;
-  $iter = $self->transcript->cursor_iter unless $iter;
+  $iter = $self->transcript_model->cursor_iter unless $iter;
 
   my @SVs = @{$self->_sync_vectors};
   return 0 if (@SVs == 0);
