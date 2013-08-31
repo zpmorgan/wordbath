@@ -108,20 +108,6 @@ sub scroll_to_end{
   $self->_text_widget->scroll_mark_onscreen($textmark);
 }
 
-has speller=> (
-  is => 'ro',
-  isa => 'Wordbath::Speller',
-  builder => '_build_speller',
-  lazy => 1,
-);
-sub _build_speller{
-  my $self = shift;
-  my $sc = Wordbath::Speller->new();
-  $sc->whenever (ignoring => \&on_ignoring_missp, $self);
-  return $sc;
-  #$sc->whenever('sp-replace-one' => \&spell_replace_all_words, $self);
-  #$sc->whenever('sp-replace-all' => \&spell_replace_one_word, $self);
-};
 
 has _deferred_start => (
   is => 'rw',

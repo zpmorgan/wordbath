@@ -459,9 +459,9 @@ sub update_txt_pos_lbl{
 sub _build_speller{
   my $self = shift;
   #my $speller = Wordbath::Speller->new();
-  my $speller = $self->transcript->speller;
+  my $speller = $self->transcript->model->speller_widget;
   $speller->check_all_button->signal_connect (
-    clicked => sub{$self->transcript->spellcheck_all}
+    clicked => sub{$self->transcript->model->spellcheck_all}
   );
   return $speller;
 }

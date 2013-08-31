@@ -548,6 +548,21 @@ sub _ranges_overlap{
   return 1;
 }
 
+has speller_widget => (
+  is => 'rw',
+  isa => 'Wordbath::Speller',
+  builder => '_build_speller',
+  lazy => 1,
+);
+sub _build_speller{
+  my $self = shift;
+  my $sc = Wordbath::Speller->new();
+  $sc->whenever (ignoring => \&on_ignoring_missp, $self);
+  return $sc;
+  #$sc->whenever('sp-replace-one' => \&spell_replace_all_words, $self);
+  #$sc->whenever('sp-replace-all' => \&spell_replace_one_word, $self);
+};
+
 sub spellcheck_range {
   my ($self, $range_start, $range_end) = @_;
   # expand range to encompass words partially overlapping range.
@@ -594,7 +609,7 @@ sub on_ignoring_missp{
 sub spellcheck_all{
   my $self = shift;
   #reset the misspelled word widget
-  $self->speller->clear_missps; 
+  $self->speller_widget->clear_missps; 
   #remove those little red underlines:
   my @missp_words = $self->all_misspelled_words;
   $self->remove_misspelled_word($_) for @missp_words;
@@ -611,7 +626,7 @@ sub _check_word_spelling{
   if (ref $res){
     $self->add_misspelled_word($word);
     #say "Word: $word_txt. suggs: @$res.";
-    $self->speller->add_missp($word, $res);
+    $self->speller_widget->add_missp($word, $res);
     #mark the misspelled word.
     $word->tag_missp;
   }
