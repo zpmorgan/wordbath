@@ -1,11 +1,13 @@
-use Test::More tests => 4;
+use Test::More tests => 6;
 use Modern::Perl;
 use XML::LibXML;
+use File::Slurp;
 
 use lib 'lib';
 use Wordbath::Transcript;
 
 my $example_wbml_path = 't/stuff/example.wbml';
+my $output_wbml_path = '/tmp/example_saved.wbml';
 
 my $xmlparser = XML::LibXML->new();
 
@@ -23,6 +25,13 @@ if ($@){
 
 my $tmodel = Wordbath::Transcript::Model->new(from_wbml => $example_wbml_path);
 isa_ok ($tmodel => 'Wordbath::Transcript::Model');
-$tmodel->save_wbml('/tmp/example_saved.wbml');
+$tmodel->save_wbml($output_wbml_path);
+
+ok (-e $output_wbml_path, 'spewed wbml file exists.');
+
+use Test::XML::Compare;
+my $out_wbml = $tmodel->to_wbml;
+diag($@)
+ unless is_xml_same (read_file($example_wbml_path), $out_wbml, 'compare xml, input vs output');
 
 

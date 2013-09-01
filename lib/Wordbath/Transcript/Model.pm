@@ -692,10 +692,23 @@ sub load_wbml{
   eval "use XML::LibXML";
   die $@ if $@;
 }
-sub save_wbml{
-  my ($self, $wbml_path) = @_;
+sub _wbml_doc{
   eval "use XML::LibXML";
   die $@ if $@;
+  my $doc = XML::LibXML->createDocument;
+  my $root = $doc->createElementNS( "", "foo" );
+  $doc->setDocumentElement( $root );
+  return $doc;
+}
+sub save_wbml{
+  my ($self, $wbml_path) = @_;
+  my $doc = $self->_wbml_doc;
+  $doc->toFile($wbml_path, 2);
+}
+sub to_wbml{
+  my $self = shift;
+  my $doc = $self->_wbml_doc;
+  return $doc->toString(2);
 }
 
 1;
