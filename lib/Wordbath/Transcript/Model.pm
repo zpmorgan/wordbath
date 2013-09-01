@@ -111,7 +111,7 @@ sub current_text{
   my $self = shift;
   my $buf = $self->buf;
   my ($start, $end) = $buf->get_bounds();
-  $end->forward_char();
+  #$end->forward_char(); why?
   my $txt = $buf->get_text($start, $end, 1);
   return $txt;
 }
@@ -252,6 +252,12 @@ sub _append_slabel{
   $self->_last_tried_slabel($next_lbl);
 }
 
+sub append_text{
+  my ($self, $text) = @_;
+  my $buf = $self->buf;
+  my $end = $buf->get_end_iter();
+  $buf->insert($end, $text);
+}
 sub append_line{
   my ($self, $line) = @_;
   my $buf = $self->buf;
@@ -709,18 +715,35 @@ sub load_wbml{
   my $doc = XML::LibXML->new->parse_file($wbml_path);
   my $transcript_e = $doc->documentElement();
   my @cn = $transcript_e->childNodes;
-  my @spkrs = grep {$_->nodeType eq 'speaker'} @cn;
+  my %spkrs;
+  my $pnum = 0;
   for my $node (@cn){
-    next if $node->nodeType == XML::LibXML::XML_TEXT_NODE;
+    next if $node->nodeType == XML::LibXML::XML_TEXT_NODE; #whitespace in xml?
     if ($node->localname eq 'speaker'){
-      push @spkrs, $node;
-      next
+      $spkrs{$node->getAttribute('id')} = $node;
     }
-    if ($node->localname eq 'speakerless-event'){
-      $self->append_line( '[' . $node->nodeValue . ']');
-      next
+    elsif ($node->localname eq 'speakerless-event'){
+      $self->append_text("\n\n") if ($pnum>0);
+      $self->append_text( '[' . $node->textContent . ']');
+      $pnum++
     }
-    die $node->localname unless ($node->localname eq 'paragraph');
+    elsif ($node->localname eq 'paragraph'){
+      $self->append_text("\n\n") if ($pnum>0);
+      my $spkr_id = $node->getAttribute('speaker');
+      if($spkr_id){
+        my $spkr_node = $spkrs{$spkr_id};
+        $self->append_text($spkr_id . ': ');
+      }
+      for my $p_c ($node->childNodes){
+        if ($p_c->nodeType == XML::LibXML::XML_TEXT_NODE){
+          $self->append_text($p_c->nodeValue);
+        } elsif ($p_c->localname eq 'speaker-event'){
+          $self->append_text( '[' . $p_c->textContent . ']');
+        }
+      }
+      $pnum++
+    }
+    else {die $node->localname .', '. $node->nodeType};
   }
 }
 
@@ -736,20 +759,47 @@ sub _wbml_doc{
   $doc->setDocumentElement( $root );
 
   for my $slabel ($self->scan_for_slabels){
-    warn $slabel;
     my $sl_e = $doc->createElement( "speaker" );
     $sl_e->setAttribute(id => $slabel);
     $root->appendChild($sl_e);
   }
+  # iterate through the buffer, picking out paragraphs and such
+  my $buf = $self->buf;
+  my ($line_iter, $end) = $buf->get_bounds();
+  my $lnum = 0;
+  for my $lnum (0 .. $end->get_line-1){
+    $line_iter->set_line($lnum);
+    my $line_end = $line_iter->copy;
+    $line_end->forward_to_line_end;
+    my $l_txt = $buf->get_text($line_iter, $line_end, 1);
+    $l_txt =~ s/^\n//; #BOO!
+    if ($l_txt eq ''){
+      #blank line. do nothing.
+    } elsif ($l_txt =~ /^\[(.*)\]$/){
+      my $e = $root->addNewChild('', 'speakerless-event');
+      my $ec = $doc->createTextNode( $1 );
+      $e->addChild( $ec );
+    } else {
+      $l_txt =~ /^([^:]{1,40}): (.*)$/;
+      my $slabel = $1;
+      my $rest_of_line = $1 ? $2 : $l_txt;
 
-  my $txt = $self->current_text;
-  my @lines = split "\n", $txt;
-  for my $l (@lines){
-    next if $l eq '';
-    my $p = $root->addNewChild('', 'paragraph');
-    $p->setAttribute(speaker => 'Barack');
-    my $text = $doc->createTextNode($l);
-    $p->appendChild($text);
+      my $p = $root->addNewChild('', 'paragraph');
+      $p->setAttribute(speaker => $slabel) if $slabel;
+
+      while ($rest_of_line =~ /([^\[]+|\[[^\]]+\]|.+$)/g){
+        my $p_part = $1;
+        if($p_part =~ /^\[(.*)\]/){
+          my $text = $doc->createTextNode($1);
+          my $se = $p->addNewChild('', 'speaker-event');
+          $se->appendChild($text);
+        } else {
+          my $text = $doc->createTextNode($p_part);
+          $p->appendChild($text);
+        }
+      }
+    }
+    $lnum++
   }
   return $doc;
 }

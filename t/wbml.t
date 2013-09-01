@@ -1,4 +1,4 @@
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Modern::Perl;
 use XML::LibXML;
 use File::Slurp;
@@ -25,8 +25,12 @@ if ($@){
 
 my $tmodel = Wordbath::Transcript::Model->new(from_wbml => $example_wbml_path);
 isa_ok ($tmodel => 'Wordbath::Transcript::Model');
-$tmodel->save_wbml($output_wbml_path);
+is(
+  $tmodel->current_text,
+  "[beep]\n\nBarack: [coughs]FOO.",
+  'loaded wbml vs text');
 
+$tmodel->save_wbml($output_wbml_path);
 ok (-e $output_wbml_path, 'spewed wbml file exists.');
 
 use Test::XML::Compare;
