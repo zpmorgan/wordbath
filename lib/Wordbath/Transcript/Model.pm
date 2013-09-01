@@ -8,6 +8,12 @@ Wordbath::Roles::Whenever->import();;
 signal ('pos_change');
 signal ('end_activity');
 
+# arg for constructor.
+has from_wbml => (
+  isa => 'Str',
+  is => 'ro',
+);
+
 has buf => (
   is => 'ro',
   isa => 'Gtk3::TextBuffer',
@@ -49,6 +55,9 @@ sub BUILD{
   $misspelled_word_tag->set("underline-set" => 1);
   $misspelled_word_tag->set("underline" => 'error');
   $self->_misspelled_word_tag( $misspelled_word_tag );
+  if ($self->from_wbml){
+    $self->load_wbml($self->from_wbml);
+  }
 }
 
 sub _on_buf_mark_set{
@@ -678,6 +687,11 @@ sub save_vectors{
   $self->logger->NOTICE("wrote sync vectors to $path");
 }
 
+sub load_wbml{
+  my ($self, $wbml_path) = @_;
+  eval "use XML::LibXML";
+  die $@ if $@;
+}
 sub save_wbml{
   my ($self, $wbml_path) = @_;
   eval "use XML::LibXML";

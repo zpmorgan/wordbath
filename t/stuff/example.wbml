@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<transcript xmlns="http://foo.foo.foo">
-  
+<transcript>
+  <speaker></speaker>
+  <speakerless-event/>
+  <paragraph speaker="Barack"> <speaker-event>coughs</speaker-event>FOO.</paragraph>
 </transcript>
 
