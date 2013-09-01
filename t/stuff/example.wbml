@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <transcript>
-  <speaker></speaker>
+  <speaker id="barack"/>
   <speakerless-event/>
   <paragraph speaker="Barack"> <speaker-event>coughs</speaker-event>FOO.</paragraph>
 </transcript>

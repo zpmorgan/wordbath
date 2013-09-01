@@ -17,7 +17,7 @@ ok ( $schema, 'Good XML::LibXML::Schema was initialised' );
 my $doc = $xmlparser->parse_file( $example_wbml_path );
 ok($doc);
 
-ok (0 == eval { $schema->validate($doc)}, '$schema validates example wbml');
+ok (defined eval { $schema->validate($doc)}, '$schema validates example wbml');
 if ($@){
   diag ("VALIDATION ERRORS:");
   diag($@);

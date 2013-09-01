@@ -170,14 +170,20 @@ has _last_tried_slabel => (
   is => 'rw',
 );
 
-sub collect_slabels{
+sub scan_for_slabels{
   my $self = shift;
   my $txt = $self->current_text;
-  # extract all labels from text.
   my @slabels;
   my $floating_spkr_lbl = qr|[^:\n]{1,40}|;
   push @slabels, $1 if $txt =~ m|^($floating_spkr_lbl):\s|;
   push @slabels, $1 while $txt =~ m|\n($floating_spkr_lbl):\s|g;
+  return @slabels;
+}
+
+sub collect_slabels{
+  my $self = shift;
+  # extract all labels from text.
+  my @slabels = $self->scan_for_labels;
   if (@slabels >= 2){
     unshift @slabels, pop @slabels; #penultimate first..
   }
@@ -244,6 +250,14 @@ sub _append_slabel{
   #$self->scroll_to_end();
   $self->blurp('end_activity');
   $self->_last_tried_slabel($next_lbl);
+}
+
+sub append_line{
+  my ($self, $line) = @_;
+  my $buf = $self->buf;
+  my $end = $buf->get_end_iter();
+  $line = "\n\n$line" if $end->copy->backward_char; #at the beginning?
+  $buf->insert($end, $line);
 }
 
 
@@ -687,17 +701,56 @@ sub save_vectors{
   $self->logger->NOTICE("wrote sync vectors to $path");
 }
 
+### LOAD
 sub load_wbml{
   my ($self, $wbml_path) = @_;
   eval "use XML::LibXML";
   die $@ if $@;
+  my $doc = XML::LibXML->new->parse_file($wbml_path);
+  my $transcript_e = $doc->documentElement();
+  my @cn = $transcript_e->childNodes;
+  my @spkrs = grep {$_->nodeType eq 'speaker'} @cn;
+  for my $node (@cn){
+    next if $node->nodeType == XML::LibXML::XML_TEXT_NODE;
+    if ($node->localname eq 'speaker'){
+      push @spkrs, $node;
+      next
+    }
+    if ($node->localname eq 'speakerless-event'){
+      $self->append_line( '[' . $node->nodeValue . ']');
+      next
+    }
+    die $node->localname unless ($node->localname eq 'paragraph');
+  }
 }
+
+### SAVE
+
+# return libxml doc based on current state
 sub _wbml_doc{
+  my $self = shift;
   eval "use XML::LibXML";
   die $@ if $@;
   my $doc = XML::LibXML->createDocument;
-  my $root = $doc->createElementNS( "", "foo" );
+  my $root = $doc->createElementNS( "", "transcript" );
   $doc->setDocumentElement( $root );
+
+  for my $slabel ($self->scan_for_slabels){
+    warn $slabel;
+    my $sl_e = $doc->createElement( "speaker" );
+    $sl_e->setAttribute(id => $slabel);
+    $root->appendChild($sl_e);
+  }
+
+  my $txt = $self->current_text;
+  my @lines = split "\n", $txt;
+  for my $l (@lines){
+    next if $l eq '';
+    my $p = $root->addNewChild('', 'paragraph');
+    $p->setAttribute(speaker => 'Barack');
+    my $text = $doc->createTextNode($l);
+    $p->appendChild($text);
+  }
   return $doc;
 }
 sub save_wbml{
