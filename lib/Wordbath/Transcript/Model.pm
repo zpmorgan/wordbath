@@ -11,8 +11,20 @@ signal ('end_activity');
 has buf => (
   is => 'ro',
   isa => 'Gtk3::TextBuffer',
-  required => 1,
+  lazy => 1,
+  builder => '_viewless_buffer',
 );
+
+# model can be launched standalone. so, make a standalone buffer.
+BEGIN{
+  unless (eval "Gtk3::init_check()"){
+    eval "use Gtk3; Gtk3::init"; die $@ if $@;
+  }
+}
+sub _viewless_buffer{
+  my $self = shift;
+  return Gtk3::TextBuffer->new;
+}
 
 has audiosync => (
   isa => 'Wordbath::Transcript::AudioSync',
