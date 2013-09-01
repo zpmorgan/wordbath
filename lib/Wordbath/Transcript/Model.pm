@@ -8,6 +8,8 @@ Wordbath::Roles::Whenever->import();;
 signal ('pos_change');
 signal ('end_activity');
 
+use XML::LibXML ':all';
+
 # arg for constructor.
 has from_wbml => (
   isa => 'Str',
@@ -710,15 +712,13 @@ sub save_vectors{
 ### LOAD
 sub load_wbml{
   my ($self, $wbml_path) = @_;
-  eval "use XML::LibXML";
-  die $@ if $@;
   my $doc = XML::LibXML->new->parse_file($wbml_path);
   my $transcript_e = $doc->documentElement();
   my @cn = $transcript_e->childNodes;
   my %spkrs;
   my $pnum = 0;
   for my $node (@cn){
-    next if $node->nodeType == XML::LibXML::XML_TEXT_NODE; #whitespace in xml?
+    next if $node->nodeType == XML_TEXT_NODE; #whitespace in xml?
     if ($node->localname eq 'speaker'){
       $spkrs{$node->getAttribute('id')} = $node;
     }
@@ -735,7 +735,7 @@ sub load_wbml{
         $self->append_text($spkr_id . ': ');
       }
       for my $p_c ($node->childNodes){
-        if ($p_c->nodeType == XML::LibXML::XML_TEXT_NODE){
+        if ($p_c->nodeType == XML_TEXT_NODE){
           $self->append_text($p_c->nodeValue);
         } elsif ($p_c->localname eq 'speaker-event'){
           $self->append_text( '[' . $p_c->textContent . ']');
@@ -752,8 +752,6 @@ sub load_wbml{
 # return libxml doc based on current state
 sub _wbml_doc{
   my $self = shift;
-  eval "use XML::LibXML";
-  die $@ if $@;
   my $doc = XML::LibXML->createDocument;
   my $root = $doc->createElementNS( "", "transcript" );
   $doc->setDocumentElement( $root );
