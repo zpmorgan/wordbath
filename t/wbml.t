@@ -46,9 +46,13 @@ ok ( $schema, 'Good XML::LibXML::Schema was initialised' );
   my $doc = $xmlparser->parse_file( $example_wbml_path );
   ok($doc);
   my $tmodel = Wordbath::Transcript::Model->new(from_wbml => $example_wbml_path);
-  isa_ok ($tmodel => 'Wordbath::Transcript::Model');
+  is(
+    $tmodel->current_text,
+    "Karl: Hi.\n\n[beep]\n\nHelmut: Hello.",
+    'loaded wbml vs text');
 
   my $out_wbml = $tmodel->to_wbml;
+  $tmodel->save_wbml($output_wbml_path);
   diag($@)
    unless is_xml_same (read_file($example_wbml_path), $out_wbml, 'compare xml, input vs output');
 }

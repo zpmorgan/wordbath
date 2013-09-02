@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transcript>
+  <speaker id="Karl"/>
+  <speaker id="Helmut"/>
+  <paragraph speaker="Karl">H<alignment-vector />i.</paragraph>
+  <speakerless-event>beep</speakerless-event>
+  <paragraph speaker="Helmut">Hello.</paragraph>
+</transcript>
