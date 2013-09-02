@@ -1,0 +1,16 @@
+Hello, you. You are using Wordbath.
+
+Wordbath is a transcript editor, and it offers media playback capabilities with tempo change.
+
+Wordbath's hotkey-driven nature means that you must bang on your keyboard like a monkey to discover new features.
+
+Wordbath is built on several technologies, like such as Perl, GStreamer, and Gtk.
+
+Please transcribe this entire recording.
+
+Grr. Ooga booga. Yarr.
+
+Wordbath editor is best editor.
+
+I'm [your name] and I approve this message.
+
