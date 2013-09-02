@@ -295,7 +295,8 @@ sub _build_arbitkeys{
       $self->player->seek_ns($pos_ns);
       return 1;
     });
-
+  $keys->handle( keycombo => 'F2', cb => sub{
+      $self->transcript->model->insert_time_ns( $self->player->pos_ns ) ; return 1});
   return $keys;
 }
 

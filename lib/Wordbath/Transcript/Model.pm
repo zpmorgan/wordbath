@@ -269,7 +269,29 @@ sub append_line{
   $buf->insert($end, $line);
 }
 
+sub insert_time_ns{
+  my ($self, $time_ns) = @_;
+  my $str = _fmt_time_ns($time_ns);
+  my $i= $self->buf->get_iter_at_mark($self->buf->get_insert);
+  $self->buf->insert($i, $str);
+}
 
+# example: 3700*BILLION -> "01:01:40"
+# potentially modifiable, unlike the same thing in App.pm
+sub _fmt_time_ns{
+  my $ns = shift;
+  my $tot_sec = int ($ns / 10**9);
+  my $sec = $tot_sec % 60;
+  my $time_txt = sprintf ("%02d", $sec);
+  my $min = int($tot_sec/60) % 60;
+  $time_txt = sprintf("%02d:$time_txt", $min);
+  #hours
+  if ($tot_sec >= 3600){
+    my $hr = int($tot_sec / 3600);
+    $time_txt = sprintf("%02d:$time_txt", $hr);
+  }
+  return $time_txt;
+}
 
 
 #### UNDO / REDO
