@@ -186,7 +186,7 @@ sub scan_for_slabels{
 sub collect_slabels{
   my $self = shift;
   # extract all labels from text.
-  my @slabels = $self->scan_for_labels;
+  my @slabels = $self->scan_for_slabels;
   if (@slabels >= 2){
     unshift @slabels, pop @slabels; #penultimate first..
   }
