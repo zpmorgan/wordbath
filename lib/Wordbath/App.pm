@@ -281,22 +281,20 @@ sub _build_arbitkeys{
     $keys->handle( keycombo => $foo->[0], cb => sub{$self->rel_seek($foo->[1])} );
   }
   $keys->handle( keycombo => 'F5', cb => sub{ 
-      $self->transcript->model->next_slabel_in_text(pos_ns => $self->player->pos_ns);
-      return 1});
-  $keys->handle( keycombo => 'F7', cb => sub{ $self->_adjust_rate(-.03); return 1});
-  $keys->handle( keycombo => 'F8', cb => sub{ $self->_adjust_rate(+.03); return 1});
-  $keys->handle( keycombo => '<a>space', cb => sub{ $self->play_pause; return 1});
+      $self->transcript->model->next_slabel_in_text(pos_ns => $self->player->pos_ns) });
+  $keys->handle( keycombo => 'F7', cb => sub{ $self->_adjust_rate(-.03)});
+  $keys->handle( keycombo => 'F8', cb => sub{ $self->_adjust_rate(+.03)});
+  $keys->handle( keycombo => '<a>space', cb => sub{ $self->play_pause});
   $keys->whenever(retraction => sub{ shift;$self->transcript->model->arbitrary_text_retraction(@_) }, $self);
   # <t>ext (s)eek-sync to audio pos
   $keys->handle( keycombo => '<t>s', cb => sub{
-      $self->transcript->model->sync_text_to_pos_ns( $self->player->pos_ns) ; return 1});
+      $self->transcript->model->sync_text_to_pos_ns( $self->player->pos_ns)});
   $keys->handle( keycombo => '<a>s', cb => sub{
       my $pos_ns = $self->transcript->model->audio_pos_ns_at_cursor;
       $self->player->seek_ns($pos_ns);
-      return 1;
     });
   $keys->handle( keycombo => 'F2', cb => sub{
-      $self->transcript->model->insert_time_ns( $self->player->pos_ns ) ; return 1});
+      $self->transcript->model->insert_time_ns( $self->player->pos_ns )});
   return $keys;
 }
 
