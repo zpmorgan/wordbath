@@ -1,6 +1,7 @@
 package Wordbath::Transcript::Model;
 use Moose;
 use Modern::Perl;
+use Wordbath::Transcript::AudioSync;
 
 with 'Wordbath::Roles::Logger';
 with 'Wordbath::Roles::Whenever';
