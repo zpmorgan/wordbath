@@ -44,9 +44,10 @@ sub _build_pipeline{
   my $self = shift;
   # newer gstreamer uses videoconvert instead of ffmpegcolorspace?
   # also, it doesn't fail on parse errors?
+  my $dec_elem = $major<1 ? "decodebin2" : 'decodebin';
   my $pipeline_description =
     "filesrc name=my_file_src ! typefind name=typer ! fakesink name=fake ".
-    "decodebin2 name=derc ".
+    "$dec_elem name=derc ".
     # all media is assumed to contain audio. that's the point.
     "derc. ! queue ! audioconvert ! audioresample ! ".
     "scaletempo name=stempo ! ".
