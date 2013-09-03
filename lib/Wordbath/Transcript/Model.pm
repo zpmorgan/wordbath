@@ -1,5 +1,6 @@
 package Wordbath::Transcript::Model;
 use Moose;
+use utf8;
 use Modern::Perl;
 use Wordbath::Transcript::AudioSync;
 
