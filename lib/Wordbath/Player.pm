@@ -5,6 +5,7 @@ use GStreamer -init;
 use FindBin '$Bin';
 use Carp 'cluck';
 
+my ($major, $minor, $micro) = GStreamer -> version();
 #gstreamer stuff in this module.
 #todo: subband sinusoidal modeling?
 
@@ -67,7 +68,8 @@ sub _build_pipeline{
       $self->logger->INFO ("CAPS: $caps");
       if ($caps =~ /^video/){
         $self->logger->INFO ("doing video pipeline things");
-        my $conv  = GStreamer::ElementFactory->make(ffmpegcolorspace => 'vconv');
+        my $conv  = GStreamer::ElementFactory->make(
+          ($major<1 ? 'ffmpegcolorspace' : 'videoconvert') => 'vconv');
         my $vsink = GStreamer::ElementFactory->make(autovideosink => 'vsink');
         $self->x_overlay($vsink);
         $pipeline->add($conv,$vsink);
