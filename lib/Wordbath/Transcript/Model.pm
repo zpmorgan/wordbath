@@ -792,7 +792,8 @@ sub _wbml_doc{
   my $last_lnum = $end->get_line;
   for my $lnum (0 .. $last_lnum){
     $line_iter->set_line($lnum);
-    my $line_end = $line_iter->copy->forward_line;
+    my $line_end = $line_iter->copy;
+    $line_end->forward_line;
     $line_end->backward_char unless $lnum == $last_lnum;
     my $l_txt = $buf->get_text($line_iter, $line_end, 1);
     if ($l_txt eq ''){
