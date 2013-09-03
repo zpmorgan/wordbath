@@ -788,12 +788,12 @@ sub _wbml_doc{
   my $buf = $self->buf;
   my ($line_iter, $end) = $buf->get_bounds();
   my $lnum = 0;
-  for my $lnum (0 .. $end->get_line-1){
+  my $last_lnum = $end->get_line;
+  for my $lnum (0 .. $last_lnum){
     $line_iter->set_line($lnum);
-    my $line_end = $line_iter->copy;
-    $line_end->forward_to_line_end;
+    my $line_end = $line_iter->copy->forward_line;
+    $line_end->backward_char unless $lnum == $last_lnum;
     my $l_txt = $buf->get_text($line_iter, $line_end, 1);
-    $l_txt =~ s/^\n//; #BOO!
     if ($l_txt eq ''){
       #blank line. do nothing.
     } elsif ($l_txt =~ /^\[(.*)\]$/){
