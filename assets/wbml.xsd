@@ -6,6 +6,7 @@
       <xsd:enumeration value="anchor"/>
       <xsd:enumeration value="play"/>
       <xsd:enumeration value="pause"/>
+      <xsd:enumeration value="slabeling"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -18,7 +19,7 @@
 
   <xsd:complexType mixed="true" name="paragraph-type">
     <xsd:sequence>
-      <xsd:choice minOccurs="1">
+      <xsd:choice minOccurs="0" maxOccurs="unbounded">
         <xsd:element name="speaker-event" type="xsd:string"/>
         <xsd:element name="alignment-vector" type="alignment-vector-type"/>
       </xsd:choice>
@@ -41,10 +42,10 @@
     <xsd:complexType>
       <xsd:sequence>
 
-        <xsd:element name="speaker" type="speaker-type" minOccurs="1"/>
+        <xsd:element name="speaker" type="speaker-type" maxOccurs="unbounded"/>
 
-        <xsd:choice minOccurs="1" maxOccurs="2">
-          <xsd:element name="paragraph" type="paragraph-type" minOccurs="1"/>
+        <xsd:choice minOccurs="1" maxOccurs="unbounded">
+          <xsd:element name="paragraph" type="paragraph-type"/>
           <xsd:element name="speakerless-event" type="xsd:string"/>
         </xsd:choice>
 

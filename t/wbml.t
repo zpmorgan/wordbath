@@ -1,4 +1,4 @@
-use Test::More tests => 10;
+use Test::More tests => 11;
 use Modern::Perl;
 use XML::LibXML;
 use Test::XML::Compare;
@@ -45,6 +45,12 @@ ok ( $schema, 'Good XML::LibXML::Schema was initialised' );
   my $output_wbml_path = '/tmp/example_vectors_saved.wbml';
   my $doc = $xmlparser->parse_file( $example_wbml_path );
   ok($doc);
+  ok (defined eval { $schema->validate($doc)}, '$schema validates example wbml');
+  if ($@){
+    diag ("VALIDATION ERRORS:");
+    diag($@);
+  }
+
   my $tmodel = Wordbath::Transcript::Model->new(from_wbml => $example_wbml_path);
   is(
     $tmodel->current_text,
