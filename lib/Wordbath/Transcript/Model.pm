@@ -761,6 +761,12 @@ sub load_wbml{
           $self->append_text($p_c->nodeValue);
         } elsif ($p_c->localname eq 'speaker-event'){
           $self->append_text( '[' . $p_c->textContent . ']');
+        } elsif ($p_c->localname eq 'alignment-vector'){
+          $self->audiosync->vector_here_at (
+            iter => $self->buf->get_end_iter,
+            pos_ns => $p_c->getAttribute('audio-pos-ns'),
+            type => $p_c->getAttribute('classification'),
+          );
         }
       }
       $pnum++

@@ -88,7 +88,7 @@ sub _build_sync_vectors{ #ew. kill this.
   my $spa = Wordbath::Transcript::AudioSync::SyncVector->new(type => '-ile',
         pos_ns => 0, mark => $s);
   my $epa = Wordbath::Transcript::AudioSync::SyncVector->new(type => '-ile',
-        pos_ns => $self->player->dur_ns, mark => $e);
+        pos_ns => $self->player->dur_ns, mark => $e) if ($self->player);
   return [$spa, $epa];
 }
 sub buf{
