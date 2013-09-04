@@ -42,8 +42,8 @@ if ($location){
   }
 }
 else{
-  $file = 'dchha48_Prophets_of_Doom.mp3';
-  $workdir = $Bin;
+  $file = 'blurb.ogg';
+  $workdir = "$Bin/assets";
 }
 
 $wb->load_audio_file("$workdir/$file");
