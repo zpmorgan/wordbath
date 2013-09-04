@@ -103,7 +103,7 @@ sub vector_here_at{
   unless ($args{pos_ns}){
     $args{pos_ns} = $self->player->pos_ns;
   }
-  die 'need mark. '.@_ unless $args{mark};
+  die 'need iter. '.@_ unless $args{iter};
   my $mark = $self->buf->create_mark('vec '.$self->_inc_mark_inc, $args{iter}, 1);
   my $vec = Wordbath::Transcript::AudioSync::SyncVector->new(
     type => $args{type},
@@ -155,6 +155,7 @@ sub audio_pos_ns_at{
 
 sub vector_from_mark{
   my ($self, $mark) = @_;
+  return unless $mark->get_name;
   my $vec = $self->_vecs_by_mark_name->{$mark->get_name};
   return $vec;
 }

@@ -817,10 +817,9 @@ sub _wbml_doc{
       };
       my $react_to_marks = sub{
         my $i = shift;
-        my @marks = $i->get_marks;
-        for (@marks){
+        my $marks = $i->get_marks || [];
+        for (@$marks){
           # is this mark an alignment vector position?
-          next unless $_; # (undef) instead of empty....
           my $vec = $self->audiosync->vector_from_mark($_);
           if ($vec){
             $flush_pending_text->();
