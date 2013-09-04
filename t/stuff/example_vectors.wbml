@@ -2,7 +2,8 @@
 <transcript>
   <speaker id="Karl"/>
   <speaker id="Helmut"/>
-  <paragraph speaker="Karl">H<alignment-vector />i.</paragraph>
+  <paragraph speaker="Karl">H<alignment-vector
+      audio-pos-ns="123456" classification="slabeling"/>i.</paragraph>
   <speakerless-event>beep</speakerless-event>
   <paragraph speaker="Helmut">Hello.</paragraph>
 </transcript>

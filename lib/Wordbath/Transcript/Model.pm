@@ -126,9 +126,7 @@ sub insert_sync_vector_here_at_pos{
   die unless $args{type};
   my $buf = $self->buf;
   my $iter = $self->cursor_iter;
-  my $mname;# undef...no naming conflict at least.
-  my $new_mark = $buf->create_mark($mname, $iter, 1);;
-  $self->audiosync->vector_here_at (type => $args{type}, mark => $new_mark);#, pos_ns => $args{pos_ns});
+  $self->audiosync->vector_here_at (type => $args{type}, iter => $iter);#, pos_ns => $args{pos_ns});
 }
 sub audio_pos_ns_at_cursor{
   my $self = shift;
@@ -810,17 +808,66 @@ sub _wbml_doc{
       my $p = $root->addNewChild('', 'paragraph');
       $p->setAttribute(speaker => $slabel) if $slabel;
 
-      while ($rest_of_line =~ /([^\[]+|\[[^\]]+\]|.+$)/g){
-        my $p_part = $1;
-        if($p_part =~ /^\[(.*)\]/){
-          my $text = $doc->createTextNode($1);
+      my $pending_text = '';
+      my $flush_pending_text = sub{
+        return unless $pending_text;
+        my $text = $doc->createTextNode($pending_text);
+        $p->appendChild($text);
+        $pending_text = '';
+      };
+      my $react_to_marks = sub{
+        my $i = shift;
+        my @marks = $i->get_marks;
+        for (@marks){
+          # is this mark an alignment vector position?
+          next unless $_; # (undef) instead of empty....
+          my $vec = $self->audiosync->vector_from_mark($_);
+          if ($vec){
+            $flush_pending_text->();
+            my $vec_node = $p->addNewChild('', 'alignment-vector');
+            $vec_node->setAttribute('audio-pos-ns' => $vec->pos_ns);
+            $vec_node->setAttribute('classification' => $vec->type);
+          }
+        }
+      };
+
+      my $char_i = $line_iter->copy;
+      $char_i->forward_chars(length "$slabel: ") if $slabel;
+      until ($char_i->equal($line_end)){
+        $react_to_marks->($char_i); #find alignment vectors.
+        my $ch = $char_i->get_char;
+
+        if ($ch eq '['){ #speaker-event, e.g. [honks while slurping]
+          my $eoe = $char_i->copy;
+          my $e_text = ''; #event text
+          $eoe->forward_find_char(sub{my $ech=shift; $e_text.=$ech; $ech eq ']'},'', $line_end);
+          chop $e_text; # -']'
+
+          if ($eoe->equal($line_end)) { #no closing tag found.
+            $pending_text .= $ch;
+            $char_i->forward_char;
+            next;
+          }
+
+          my $markfind_i = $char_i->copy;
+          until ($markfind_i->equal($eoe)){
+            #find alignment vectors left inside the event tag.
+            $react_to_marks->($markfind_i);
+            $markfind_i->forward_char;
+          }
+          $react_to_marks->($markfind_i); #find alignment vectors on closing tag
+
+          my $text_node = $doc->createTextNode($e_text);
           my $se = $p->addNewChild('', 'speaker-event');
-          $se->appendChild($text);
-        } else {
-          my $text = $doc->createTextNode($p_part);
-          $p->appendChild($text);
+          $se->appendChild($text_node);
+          $char_i = $eoe;
+          $char_i->forward_char;
+        } else { #normal. no event tag found.
+          $pending_text .= $ch;
+          $char_i->forward_char;
         }
       }
+      $flush_pending_text->();
     }
     $lnum++
   }

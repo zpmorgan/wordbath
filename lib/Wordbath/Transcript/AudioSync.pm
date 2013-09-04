@@ -16,8 +16,7 @@ use Moose;
     return $chars;
   }
 
-  my @freezable_attrs = qw/type time_placed pos_ns/;
-  sub to_hash{
+  sub to_hash{ #ew
     my $self = shift;
     my %struct = (
       pos_chars => $self->pos_chars,
@@ -27,7 +26,7 @@ use Moose;
     );
     return \%struct;
   }
-  sub from_hash{
+  sub from_hash{ #ew
     my ($class, $hash, $buf) = @_;
     die 'need buf' unless $buf;
     my $i = $buf->get_iter_at_offset($hash->{pos_chars});
@@ -56,6 +55,13 @@ has player => (weak_ref => 1, isa => 'Wordbath::Player', is => 'rw'); #please se
 
 has from_hash => (is => 'ro', isa => 'HashRef');
 
+has _mark_inc => (
+  is=>'rw', isa=>'Int', default=>0,
+  traits=>['Counter'],
+  handles => {_inc_mark_inc=> 'inc'} );
+has _vecs_by_mark_name => (
+  isa => 'HashRef', is=>'ro', default=>sub{{}} );
+
 sub to_hash{
   my $self = shift;
   my $SVs = $self->_sync_vectors;
@@ -67,7 +73,7 @@ no Moose;
 # conflicts with PDL's  'inner' exported symbol
 
 
-sub _build_sync_vectors{
+sub _build_sync_vectors{ #ew. kill this.
   my $self = shift;
   if ($self->from_hash){
     my $SV_hashes = $self->from_hash->{_sync_vectors};
@@ -78,13 +84,17 @@ sub _build_sync_vectors{
   my ($si,$ei) = $buf->get_bounds;
   my $s = $buf->create_mark("start pa", $si, 1);
   my $e = $buf->create_mark("end pa",   $ei, 1);
+  # don't keep track of these by name. just generate them on every new instance.
   my $spa = Wordbath::Transcript::AudioSync::SyncVector->new(type => '-ile',
         pos_ns => 0, mark => $s);
   my $epa = Wordbath::Transcript::AudioSync::SyncVector->new(type => '-ile',
         pos_ns => $self->player->dur_ns, mark => $e);
   return [$spa, $epa];
 }
-
+sub buf{
+  my $self = shift;
+  return $self->transcript_model->buf;
+}
 sub vector_here_at{
   my $self = shift;
   my %args = @_;
@@ -94,12 +104,14 @@ sub vector_here_at{
     $args{pos_ns} = $self->player->pos_ns;
   }
   die 'need mark. '.@_ unless $args{mark};
-  my $pa = Wordbath::Transcript::AudioSync::SyncVector->new(
+  my $mark = $self->buf->create_mark('vec '.$self->_inc_mark_inc, $args{iter}, 1);
+  my $vec = Wordbath::Transcript::AudioSync::SyncVector->new(
     type => $args{type},
     pos_ns => $args{pos_ns},
-    mark => $args{mark}
+    mark => $mark, # $args{mark}
   );
-  $self->_sync_vector_push($pa);
+  $self->_vecs_by_mark_name->{$mark->get_name} = $vec;
+  $self->_sync_vector_push($vec);
 }
 
 use PDL;
@@ -139,6 +151,12 @@ sub audio_pos_ns_at{
   my $xi = pdl($iter->get_offset);
   my $pos_ns = $xi->interpol($x,$y);
   return $pos_ns->sclr;
+}
+
+sub vector_from_mark{
+  my ($self, $mark) = @_;
+  my $vec = $self->_vecs_by_mark_name->{$mark->get_name};
+  return $vec;
 }
 
 1;
