@@ -50,7 +50,7 @@ sub _build_pipeline{
     "$dec_elem name=derc ".
     # all media is assumed to contain audio. that's the point.
     "derc. ! queue ! audioconvert ! audioresample ! ".
-    "scaletempo name=stempo ! ".
+    "scaletempo stride=12 overlap=.3  name=stempo ! ".
     "audioconvert ! audioresample ! ".
     "autoaudiosink name=speakers ";
 
