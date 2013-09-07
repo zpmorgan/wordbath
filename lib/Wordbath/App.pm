@@ -2,8 +2,8 @@ package Wordbath::App;
 use Moose;
 use Modern::Perl;
 use utf8;
-use Gtk3 -init;
 use FindBin '$Bin';
+use Gtk3 -init;
 use Pango;
 use File::Slurp;
 use lib 'lib';
@@ -197,15 +197,21 @@ sub rel_seek{
 # css.
 sub _load_styles{
   my $self = shift;
+  use Cwd;
+  my $pd = getcwd;
+  chdir $Bin;
+
   my $p = Gtk3::CssProvider->new;
-  my $css_filename = 'delorean-noir.css';
+  my $css_file_path = $Bin . '/assets/' . 'delorean-noir.css';
   # $p->load_from_file($css_filename);
-  my $cssdata = read_file('delorean-noir.css');
+  my $cssdata = read_file($css_file_path);
   $p->load_from_data($cssdata, -1);
   my $d = Gtk3::Gdk::Display::get_default ();
   my $s = $d->get_default_screen;
   Gtk3::StyleContext::add_provider_for_screen (
     $s, $p, Gtk3::STYLE_PROVIDER_PRIORITY_USER);
+
+  chdir $pd;
 }
 
 # example: 3700 -> "01:01:40"
