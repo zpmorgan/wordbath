@@ -46,6 +46,7 @@ else{
   $workdir = "$Bin/assets";
 }
 
+#my $wbml_file = $file . '.wbml'; #use?
 $wb->load_audio_file("$workdir/$file");
 $wb->play();
 $wb->run();

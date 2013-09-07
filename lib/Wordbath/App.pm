@@ -176,6 +176,7 @@ sub _build_win{
 
   $self->_load_styles();
   $win->show_all();
+  $self->load_dialog_if_relevant();
   return $win;
 }
 
@@ -516,6 +517,10 @@ sub save_all{
   $self->save_text();
   $self->save_data();
 }
+sub wbml_path{
+  my $self = shift;
+  $self->_audio_path . '.wbml';
+}
 sub save_data{
   my $self = shift;
   my $audio_path = $self->_audio_path;
@@ -523,7 +528,7 @@ sub save_data{
   $self->transcript->model->save_vectors($vectors_file_path);
   say("wrote sync vectors to $vectors_file_path");
 
-  my $wbml_path= $audio_path . '.wbml';
+  my $wbml_path= $self->wbml_path;
   $self->transcript->model->save_wbml($wbml_path);
   say("wrote wbml to $wbml_path");
 }
@@ -551,6 +556,32 @@ sub log_to_file{
   $self->logger->config({fh => $fh});
   $self->logger->config({prefix => '%P::%F|%L%_'});
   $self->logger->NOTICE("logging to $path");
+}
+# Do you wish to load from a saved wbml?
+sub load_dialog_if_relevant{
+  my $self = shift;
+  return unless (-e $self->wbml_path);
+
+  my $d= Gtk3::Dialog->new;
+  #$d->set_modal(1);
+  $d->set_title('Load?');
+  $d->add_button( 'gtk-ok' => 1);
+  $d->add_button( 'gtk-no' => 2);
+  $d->add_button( 'gtk-quit' => 3);
+  $d->get_content_area->add(Gtk3::Label->new('WBML file found for this audio. Load it?'));
+  $d->set_default_response ('ok');
+  $d->set_resizable(0);
+  $d->show_all;
+  $d->signal_connect( response => sub{
+      my ($dialog, $response) = @_;
+      if ($response == 1){
+        $self->transcript->model->load_wbml($self->wbml_path);
+      }
+      elsif ($response == 3){
+        $self->please_quit();
+      }
+      $dialog->destroy;
+    });
 }
 1;
 
