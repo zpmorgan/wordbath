@@ -749,7 +749,7 @@ sub load_wbml{
       $self->append_text( '[' . $node->textContent . ']');
       $pnum++
     }
-    elsif ($node->localname eq 'paragraph'){
+    elsif ($node->localname eq 'p'){
       $self->append_text("\n\n") if ($pnum>0);
       my $spkr_id = $node->getAttribute('speaker');
       if($spkr_id){
@@ -761,11 +761,11 @@ sub load_wbml{
           $self->append_text($p_c->nodeValue);
         } elsif ($p_c->localname eq 'speaker-event'){
           $self->append_text( '[' . $p_c->textContent . ']');
-        } elsif ($p_c->localname eq 'alignment-vector'){
+        } elsif ($p_c->localname eq 'avec'){
           $self->audiosync->vector_here_at (
             iter => $self->buf->get_end_iter,
-            pos_ns => $p_c->getAttribute('audio-pos-ns'),
-            type => $p_c->getAttribute('classification'),
+            pos_ns => $p_c->getAttribute('ns'),
+            type => $p_c->getAttribute('class'),
           );
         }
       }
@@ -811,7 +811,7 @@ sub _wbml_doc{
       my $slabel = $1;
       my $rest_of_line = $1 ? $2 : $l_txt;
 
-      my $p = $root->addNewChild('', 'paragraph');
+      my $p = $root->addNewChild('', 'p');
       $p->setAttribute(speaker => $slabel) if $slabel;
 
       my $pending_text = '';
@@ -829,9 +829,9 @@ sub _wbml_doc{
           my $vec = $self->audiosync->vector_from_mark($_);
           if ($vec){
             $flush_pending_text->();
-            my $vec_node = $p->addNewChild('', 'alignment-vector');
-            $vec_node->setAttribute('audio-pos-ns' => $vec->pos_ns);
-            $vec_node->setAttribute('classification' => $vec->type);
+            my $vec_node = $p->addNewChild('', 'avec');
+            $vec_node->setAttribute('ns' => $vec->pos_ns);
+            $vec_node->setAttribute('class' => $vec->type);
           }
         }
       };

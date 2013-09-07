@@ -2,6 +2,6 @@
 <transcript>
   <speaker id="Barack"/>
   <speakerless-event>beep</speakerless-event>
-  <paragraph speaker="Barack"><speaker-event>coughs</speaker-event>FOO.</paragraph>
+  <p speaker="Barack"><speaker-event>coughs</speaker-event>FOO.</p>
 </transcript>
 

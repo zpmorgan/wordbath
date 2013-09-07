@@ -37,7 +37,7 @@ ok ( $schema, 'Good XML::LibXML::Schema was initialised' );
 
   my $out_wbml = $tmodel->to_wbml;
   diag($@)
-   unless is_xml_same (read_file($example_wbml_path), $out_wbml, 'compare xml, input vs output');
+   unless is_xml_same (read_file($example_wbml_path), $out_wbml, "compare xml, input vs output: $output_wbml_path ");
 }
 
 {
@@ -60,7 +60,7 @@ ok ( $schema, 'Good XML::LibXML::Schema was initialised' );
   my $out_wbml = $tmodel->to_wbml;
   $tmodel->save_wbml($output_wbml_path);
   diag($@)
-   unless is_xml_same (read_file($example_wbml_path), $out_wbml, 'compare xml, input vs output');
+   unless is_xml_same (read_file($example_wbml_path), $out_wbml, "compare vec xml, input vs output: $output_wbml_path");
 }
 
 

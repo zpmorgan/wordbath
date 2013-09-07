@@ -12,16 +12,16 @@
 
 
   <xsd:complexType name="alignment-vector-type">
-    <xsd:attribute name="audio-pos-ns" type="xsd:integer" use="required"/>
-    <xsd:attribute name="time-marked-ns" type="xsd:integer"/>
-    <xsd:attribute name="classification" type="alignment-vector-classification" use="required"/>
+    <xsd:attribute name="ns" type="xsd:integer" use="required"/>
+    <xsd:attribute name="created" type="xsd:integer"/>
+    <xsd:attribute name="class" type="alignment-vector-classification" use="required"/>
   </xsd:complexType>
 
   <xsd:complexType mixed="true" name="paragraph-type">
     <xsd:sequence>
       <xsd:choice minOccurs="0" maxOccurs="unbounded">
         <xsd:element name="speaker-event" type="xsd:string"/>
-        <xsd:element name="alignment-vector" type="alignment-vector-type"/>
+        <xsd:element name="avec" type="alignment-vector-type"/>
       </xsd:choice>
     </xsd:sequence>
     <xsd:attribute name="speaker" type="xsd:string"/>
@@ -45,7 +45,7 @@
         <xsd:element name="speaker" type="speaker-type" maxOccurs="unbounded"/>
 
         <xsd:choice minOccurs="1" maxOccurs="unbounded">
-          <xsd:element name="paragraph" type="paragraph-type"/>
+          <xsd:element name="p" type="paragraph-type"/>
           <xsd:element name="speakerless-event" type="xsd:string"/>
         </xsd:choice>
 
