@@ -1,4 +1,4 @@
-use Test::More tests => 11;
+use Test::More tests => 13;
 use Modern::Perl;
 use XML::LibXML;
 use Test::XML::Compare;
@@ -63,5 +63,29 @@ ok ( $schema, 'Good XML::LibXML::Schema was initialised' );
    unless is_xml_same (read_file($example_wbml_path), $out_wbml, "compare vec xml, input vs output: $output_wbml_path");
 }
 
+# test unicode.
+# also test varying line spacing.
+# also test more of speaker labeling.
+{
+  my $in = <<'WBML';
+<?xml version="1.0" encoding="UTF-8"?>
+<transcript>
+  <speaker id="Barack" label="Barack" first-label="Barack Obama"/>
+  <speaker id="McCain" label="John McCain"/>
+  <speakerless-event>嘟</speakerless-event>
+  <p speaker="Barack">I just heard a 嘟!</p>
+  <p speaker="McCain"><speaker-event>嘟</speaker-event> Ow!</p>
+  <p speaker="Barack">My opponent just 嘟'd!</p>
+</transcript>
+WBML
+  my $doc = $xmlparser->parse_string( $in);
+  ok($doc);
+  ok (defined eval { $schema->validate($doc)}, '$schema validates example wbml');
+  if ($@){
+    diag ("VALIDATION ERRORS:");
+    diag($@);
+  }
+  
+}
 
 

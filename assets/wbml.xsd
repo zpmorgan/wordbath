@@ -34,7 +34,7 @@
 
   <xsd:complexType name="speaker-type">
     <xsd:attribute name="id" type="xsd:string" use="required"/>
-    <xsd:attribute name="label-first" type="xsd:string"/>
+    <xsd:attribute name="first-label" type="xsd:string"/>
     <xsd:attribute name="label" type="xsd:string"/>
   </xsd:complexType>
 
