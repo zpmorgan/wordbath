@@ -25,7 +25,7 @@ ok ( $schema, 'Good XML::LibXML::Schema was initialised' );
     diag($@);
   }
 
-  my $tmodel = Wordbath::Transcript::Model->new(from_wbml => $example_wbml_path);
+  my $tmodel = Wordbath::Transcript::Model->new(from_wbml_file => $example_wbml_path);
   isa_ok ($tmodel => 'Wordbath::Transcript::Model');
   is(
     $tmodel->current_text,
@@ -51,7 +51,7 @@ ok ( $schema, 'Good XML::LibXML::Schema was initialised' );
     diag($@);
   }
 
-  my $tmodel = Wordbath::Transcript::Model->new(from_wbml => $example_wbml_path);
+  my $tmodel = Wordbath::Transcript::Model->new(from_wbml_file => $example_wbml_path);
   is(
     $tmodel->current_text,
     "Karl: Hi.\n\n[beep]\n\nHelmut: Hello.",
@@ -85,6 +85,17 @@ WBML
     diag ("VALIDATION ERRORS:");
     diag($@);
   }
+  my $tmodel = Wordbath::Transcript::Model->new(from_wbml => $in);
+  is(
+    $tmodel->current_text,
+    "[嘟]\n\nBarack Obama: I just heard a 嘟!\n\n" .
+    "John McCain: [嘟] Ow!\n\nBarack: My opponent just 嘟'd!");
+  my $out = $tmodel->to_wbml;
+  my $output_wbml_path = '/tmp/example_unicode.wbml';
+  $tmodel->save_wbml($output_wbml_path);
+  diag($@)
+   unless is_xml_same ($in, $out,
+     "compare vec xml, input vs output: $output_wbml_path");
   
 }
 

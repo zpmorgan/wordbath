@@ -581,7 +581,7 @@ sub load_dialog_if_relevant{
   $d->signal_connect( response => sub{
       my ($dialog, $response) = @_;
       if ($response == 1){
-        $self->transcript->model->load_wbml($self->wbml_path);
+        $self->transcript->model->load_wbml_file($self->wbml_path);
       }
       elsif ($response == 3){
         $self->please_quit();

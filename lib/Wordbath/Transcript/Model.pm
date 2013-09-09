@@ -13,10 +13,8 @@ signal ('end_activity');
 use XML::LibXML ':all';
 
 # arg for constructor.
-has from_wbml => (
-  isa => 'Str',
-  is => 'ro',
-);
+has from_wbml => ( isa => 'Str', is => 'ro',);
+has from_wbml_file => ( isa => 'Str', is => 'ro',);
 
 has buf => (
   is => 'ro',
@@ -59,7 +57,9 @@ sub BUILD{
   $misspelled_word_tag->set("underline-set" => 1);
   $misspelled_word_tag->set("underline" => 'error');
   $self->_misspelled_word_tag( $misspelled_word_tag );
-  if ($self->from_wbml){
+  if ($self->from_wbml_file){
+    $self->load_wbml_file($self->from_wbml_file);
+  } elsif ($self->from_wbml){
     $self->load_wbml($self->from_wbml);
   }
 }
@@ -731,10 +731,21 @@ sub save_vectors{
   $self->logger->NOTICE("wrote sync vectors to $path");
 }
 
-### LOAD
 sub load_wbml{
+  my ($self, $wbml) = @_;
+  my $doc = XML::LibXML->new->parse_string($wbml);
+  die 'unable to parse doc.' unless $doc;
+  return $self->_load_from_dom($doc);
+}
+### LOAD
+sub load_wbml_file{
   my ($self, $wbml_path) = @_;
   my $doc = XML::LibXML->new->parse_file($wbml_path);
+  die 'unable to parse doc.' unless $doc;
+  return $self->_load_from_dom($doc);
+}
+sub _load_from_dom{
+  my ($self, $doc) = @_;
   my $transcript_e = $doc->documentElement();
   my @cn = $transcript_e->childNodes;
   my %spkrs;
