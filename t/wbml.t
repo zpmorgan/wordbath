@@ -3,6 +3,7 @@ use Modern::Perl;
 use XML::LibXML;
 use Test::XML::Compare;
 use File::Slurp;
+use utf8;
 
 use lib 'lib';
 use Wordbath::Transcript::Model;

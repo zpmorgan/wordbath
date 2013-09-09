@@ -791,7 +791,7 @@ sub _load_from_dom{
 # return libxml doc based on current state
 sub _wbml_doc{
   my $self = shift;
-  my $doc = XML::LibXML->createDocument;
+  my $doc = XML::LibXML->createDocument( "1.0", "UTF-8" );
   my $root = $doc->createElementNS( "", "transcript" );
   $doc->setDocumentElement( $root );
 
