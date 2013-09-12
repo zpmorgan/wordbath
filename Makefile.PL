@@ -18,6 +18,7 @@ WriteMakefile(
     'Log::Fast'    => 0,
     'LWP::Simple'  => 0,
     'Path::Class'  => 0,
+    'Test::XML::Compare' => 0,
   },
 );
 
