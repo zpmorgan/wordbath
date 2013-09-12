@@ -12,6 +12,7 @@ use Wordbath::Speller;
 use Wordbath::Transcript;
 use Wordbath::Config;
 
+our $VERSION=0.01;
 with 'Wordbath::Roles::Logger';
 
 my $LOOP; # ?
