@@ -406,6 +406,58 @@ sub arbitrary_text_retraction{
   $self->unsuppress_dodo;
 }
 
+{
+  package Wordbath::Transcript::Model::Speaker;
+  use Moose;
+  use Modern::Perl;
+  has id => (isa => 'Str', is=>'rw');
+  has label => (isa => 'Str', is=>'rw');
+  has first_label => (isa => 'Str', is=>'rw');
+  has _occurrences => (
+    is=>'rw', default=>0, traits=>['Counter'],
+    handles => {occ_add => 'inc'},
+  );
+  sub next_label{
+    my $self=shift;
+    $self->occ_add;
+    return $self->label if $self->_occurrences > 1;
+    return $self->first_label if $self->first_label;
+    return $self->label
+  }
+}
+
+has speakers => (
+  isa => 'ArrayRef',
+  is => 'ro',
+  default => sub{[]},
+  traits => ['Array'],
+  handles => {
+    all_speakers => 'elements',
+    #add_speaker => 'push',
+  },
+);
+has _speakers_by_label => (
+  isa => 'HashRef',
+  is => 'ro',
+  default => sub{{}},
+  traits => ['Hash'],
+  handles => {
+    get_speaker_by_label => 'get',
+  },
+);
+sub add_speaker{
+  my ($self, $speaker) = @_;
+  push @{$self->speakers}, $speaker;
+  $self->_speakers_by_label->{$speaker->label} = $speaker;
+  $self->_speakers_by_label->{$speaker->first_label} = $speaker
+    if $speaker->first_label;
+}
+sub get_speaker_by_id{
+  my ($self, $id) = @_;
+  my @s = grep {$_->id eq $id} $self->all_speakers;
+  return $s[0];
+}
+
 ##### SPELLCHECK STUFF
 {
   package Wordbath::Transcript::Word;
@@ -754,6 +806,13 @@ sub _load_from_dom{
     next if $node->nodeType == XML_TEXT_NODE; #whitespace in xml?
     if ($node->localname eq 'speaker'){
       $spkrs{$node->getAttribute('id')} = $node;
+      my $speaker = Wordbath::Transcript::Model::Speaker->new(
+          id => $node->getAttribute('id'),
+          label =>$node->getAttribute('label'),
+        );
+      $speaker->first_label($node->getAttribute('first-label'))
+        if $node->getAttribute('first-label');
+      $self->add_speaker ($speaker);
     }
     elsif ($node->localname eq 'speakerless-event'){
       $self->append_text("\n\n") if ($pnum>0);
@@ -764,8 +823,11 @@ sub _load_from_dom{
       $self->append_text("\n\n") if ($pnum>0);
       my $spkr_id = $node->getAttribute('speaker');
       if($spkr_id){
+        my $speaker = $self->get_speaker_by_id($spkr_id);
+        die "speaker id $spkr_id not found" unless $speaker;
+        my $label = $speaker->next_label;
         my $spkr_node = $spkrs{$spkr_id};
-        $self->append_text($spkr_id . ': ');
+        $self->append_text($label . ': ');
       }
       for my $p_c ($node->childNodes){
         if ($p_c->nodeType == XML_TEXT_NODE){
@@ -796,9 +858,17 @@ sub _wbml_doc{
   $doc->setDocumentElement( $root );
 
   for my $slabel ($self->scan_for_slabels){
-    my $sl_e = $doc->createElement( "speaker" );
-    $sl_e->setAttribute(id => $slabel);
-    $root->appendChild($sl_e);
+    #my $sl_e = $doc->createElement( "speaker" );
+    #$sl_e->setAttribute(id => $slabel);
+    # $root->appendChild($sl_e);
+  }
+  for my $speaker ($self->all_speakers){
+    my $s_e = $doc->createElement( "speaker" );
+    $s_e->setAttribute(id => $speaker->id);
+    $s_e->setAttribute(label => $speaker->label);
+    $s_e->setAttribute('first-label' => $speaker->first_label)
+      if $speaker->first_label;
+    $root->appendChild($s_e);
   }
   # iterate through the buffer, picking out paragraphs and such
   my $buf = $self->buf;
@@ -818,12 +888,17 @@ sub _wbml_doc{
       my $ec = $doc->createTextNode( $1 );
       $e->addChild( $ec );
     } else {
+      my $p = $root->addNewChild('', 'p');
+
       $l_txt =~ /^([^:]{1,40}): (.*)$/;
-      my $slabel = $1;
+      my ($slabel, $speaker);
+      $slabel = $1;
       my $rest_of_line = $1 ? $2 : $l_txt;
 
-      my $p = $root->addNewChild('', 'p');
-      $p->setAttribute(speaker => $slabel) if $slabel;
+      if ($slabel){
+        $speaker = $self->get_speaker_by_label($slabel);
+        $p->setAttribute(speaker => $speaker->id) if $slabel;
+      }
 
       my $pending_text = '';
       my $flush_pending_text = sub{

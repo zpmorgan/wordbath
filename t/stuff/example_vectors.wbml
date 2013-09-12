@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <transcript>
-  <speaker id="Karl"/>
-  <speaker id="Helmut"/>
-  <p speaker="Karl">H<avec
+  <speaker id="karl" label="Karl"/>
+  <speaker id="helmut" label="Helmut"/>
+  <p speaker="karl">H<avec
       ns="123456" class="slabeling"/>i.</p>
   <speakerless-event>beep</speakerless-event>
-  <p speaker="Helmut">Hello.</p>
+  <p speaker="helmut">Hello.</p>
 </transcript>

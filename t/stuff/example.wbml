@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <transcript>
-  <speaker id="Barack"/>
+  <speaker id="Barack" label="Barack Obama"/>
   <speakerless-event>beep</speakerless-event>
   <p speaker="Barack"><speaker-event>coughs</speaker-event>FOO.</p>
 </transcript>
