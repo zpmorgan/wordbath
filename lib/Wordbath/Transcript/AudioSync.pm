@@ -85,11 +85,12 @@ sub _build_sync_vectors{ #ew. kill this.
   my $s = $buf->create_mark("start pa", $si, 1);
   my $e = $buf->create_mark("end pa",   $ei, 1);
   # don't keep track of these by name. just generate them on every new instance.
-  my $spa = Wordbath::Transcript::AudioSync::SyncVector->new(type => '-ile',
-        pos_ns => 0, mark => $s);
-  my $epa = Wordbath::Transcript::AudioSync::SyncVector->new(type => '-ile',
-        pos_ns => $self->player->dur_ns, mark => $e) if ($self->player);
-  return [$spa, $epa];
+  #my $spa = Wordbath::Transcript::AudioSync::SyncVector->new(type => '-ile',
+ #     pos_ns => 0, mark => $s);
+ #my $epa = Wordbath::Transcript::AudioSync::SyncVector->new(type => '-ile',
+ #      pos_ns => $self->player->dur_ns, mark => $e) if ($self->player);
+ #return [$spa, $epa];
+  return [];
 }
 sub buf{
   my $self = shift;

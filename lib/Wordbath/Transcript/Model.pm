@@ -119,6 +119,13 @@ sub current_text{
   my $txt = $buf->get_text($start, $end, 1);
   return $txt;
 }
+sub find_text{
+  my ($self, $pattern) = @_;
+  my $i = $self->buf->get_start_iter;
+  my ($found,$s,$e) = $i->forward_search($pattern, []);
+  return unless $found;
+  return ($s,$e);
+}
 
 sub insert_sync_vector_here_at_pos{
   my $self = shift;

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transcript>
+  <speaker id="Katu" label="Katu"/>
+  <speaker id="Steven" label="Steven"/>
+  <speaker id="Matt" label="Matt"/>
+  <p speaker="Katu">Hello, you. You are using Wordbath.</p>
+  <p speaker="Steven">Word<avec ns="5353650793" class="stop"/>bath is a tr<avec ns="5315980750" class="go"/>anscript editor, and it offers media playback capabilities with tempo change.</p>
+  <p speaker="Matt"><avec ns="10617826750" class="go"/>Wordbath's hotkey-driven nature means that you must bang on your keyboard like a monkey to discover new features.</p>
+  <p speaker="Steven">Wordbath is built on several<avec ns="22466757369" class="stop"/> technologies, such as Perl, <avec ns="22449385000" class="go"/>GStreamer, Gtk, and lots of caffei<avec ns="25555324000" class="go"/>ne.</p>
+  <p speaker="Matt">Please transcribe this entire recording.</p>
+  <p speaker="Katu"><avec ns="31390562310" class="stop"/>Grrr.</p>
+  <p speaker="Steven">Ogga booga, yarr!</p>
+  <p speaker="Katu">Yarr!</p>
+  <p speaker="Steven"><avec ns="36601904760" class="stop"/>Wordbath editor is best editor.</p>
+  <p speaker="Katu">I'm Katu<avec ns="36559980600" class="go"/>, and I approve this message.</p>
+  <p speaker="Steven">I'm Steven, and<avec ns="38849937430" class="go"/> I approve of this message.</p>
+  <p speaker="Matt"><avec ns="42964172334" class="stop"/>I'm Matt, and I approve <avec ns="42907589860" class="go"/>this message.</p>
+</transcript>
