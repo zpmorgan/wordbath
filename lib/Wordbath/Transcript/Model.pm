@@ -442,7 +442,7 @@ has _speakers_by_label => (
   default => sub{{}},
   traits => ['Hash'],
   handles => {
-    get_speaker_by_label => 'get',
+    #get_speaker_by_label => 'get',
   },
 );
 sub add_speaker{
@@ -456,6 +456,18 @@ sub get_speaker_by_id{
   my ($self, $id) = @_;
   my @s = grep {$_->id eq $id} $self->all_speakers;
   return $s[0];
+}
+sub get_speaker_by_label{
+  my ($self, $label) = @_;
+  my $labelhash = $self->_speakers_by_label;
+  return $labelhash->{$label} if defined $labelhash->{$label};
+  #not found? then define a new speaker.
+  my $speaker = Wordbath::Transcript::Model::Speaker->new(
+    id => $label,
+    label => $label,
+  );
+  $self->add_speaker($speaker);
+  return $speaker;
 }
 
 ##### SPELLCHECK STUFF
@@ -857,19 +869,9 @@ sub _wbml_doc{
   my $root = $doc->createElementNS( "", "transcript" );
   $doc->setDocumentElement( $root );
 
-  for my $slabel ($self->scan_for_slabels){
-    #my $sl_e = $doc->createElement( "speaker" );
-    #$sl_e->setAttribute(id => $slabel);
-    # $root->appendChild($sl_e);
-  }
-  for my $speaker ($self->all_speakers){
-    my $s_e = $doc->createElement( "speaker" );
-    $s_e->setAttribute(id => $speaker->id);
-    $s_e->setAttribute(label => $speaker->label);
-    $s_e->setAttribute('first-label' => $speaker->first_label)
-      if $speaker->first_label;
-    $root->appendChild($s_e);
-  }
+  my @speaker_nodes;
+  my @line_nodes;
+
   # iterate through the buffer, picking out paragraphs and such
   my $buf = $self->buf;
   my ($line_iter, $end) = $buf->get_bounds();
@@ -884,11 +886,13 @@ sub _wbml_doc{
     if ($l_txt eq ''){
       #blank line. do nothing.
     } elsif ($l_txt =~ /^\[(.*)\]$/){
-      my $e = $root->addNewChild('', 'speakerless-event');
+      my $e = $doc->createElement( "speakerless-event" );
+      push @line_nodes, $e;
       my $ec = $doc->createTextNode( $1 );
       $e->addChild( $ec );
     } else {
-      my $p = $root->addNewChild('', 'p');
+      my $p = $doc->createElement( "p" );
+      push @line_nodes, $p;
 
       $l_txt =~ /^([^:]{1,40}): (.*)$/;
       my ($slabel, $speaker);
@@ -961,6 +965,21 @@ sub _wbml_doc{
       $flush_pending_text->();
     }
     $lnum++
+  }
+  # find speakers & node-ify them.
+  for my $speaker ($self->all_speakers){
+    my $s_e = $doc->createElement( "speaker" );
+    $s_e->setAttribute(id => $speaker->id);
+    $s_e->setAttribute(label => $speaker->label);
+    $s_e->setAttribute('first-label' => $speaker->first_label)
+      if $speaker->first_label;
+    push @speaker_nodes, $s_e;
+  }
+  for (@speaker_nodes){
+    $root->appendChild($_);
+  }
+  for (@line_nodes){
+    $root->appendChild($_);
   }
   return $doc;
 }
