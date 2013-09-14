@@ -32,6 +32,8 @@ in the home row.
 
 =item * <ctrl>s to save next to the audio file, e.g. "audio.mp3.txt"
 
+=item * <ctrl>e, to <e>xport in .doc format. (requires unoconv)
+
 =item * <ctrl>q to quit
 
 =item * <ctrl>z to recover from traumatic deletions

@@ -117,6 +117,7 @@ sub _build_win{
     my @file_clickables = (
       [Save => '<Control>S', sub{$self->save_all}],
       ['Edit config' => undef, sub{ $self->config->launch_edit_window}],
+      ['Export .doc' => '<Control>E', sub{$self->export_doc}],
       [Undo => '<Control>Z', sub{ $self->transcript->model->undo}],
       [Redo => '<Control>Y', sub{ $self->transcript->model->redo}],
       ['Keyboard Infodump' => undef, sub{ say $self->_arbitkeys->infodump}],
@@ -255,8 +256,6 @@ my $_method_hotkeys = [
   ['shift-mask','space', \&play_pause],
   ['control-mask','t', \&seek_text_from_audio],
   ['control-mask','f', \&seek_audio_from_text],
-  # gtk can't have arrow key accelerators?
-  #['shift-mask','leftarrow', \&rel_seek, -2],
 ];
 sub _do_hotkeys{
   my ($self) = @_;
@@ -550,6 +549,25 @@ sub save_text{
   write_file($file_path, {binmode => ':utf8'}, $txt);
   $self->logger->NOTICE("wrote to $file_path");
   say("wrote to $file_path");
+}
+sub _audio_dir{
+  my $self = shift;
+  my $audio_path = $self->_audio_path;
+  $audio_path =~ m#^(.*)/[^/]*$#;
+  die $audio_path unless $1;
+  return $1;
+}
+sub export_doc{
+  my $self = shift;
+  $self->save_text;
+  my $file_path = $self->_text_file_path();
+  #my $cmd = 'libreoffice --headless convert-to doc ' .
+  #  ' --outdir '. $self->_audio_dir . ' ' .
+  #  $self->_text_file_path;
+  my $cmd = "unoconv -v --format doc $file_path";
+  say "running command: $cmd";
+  my $out = `$cmd`;
+  say "unoconv  output: $out";
 }
 sub _text_file_path{
   my $self = shift;

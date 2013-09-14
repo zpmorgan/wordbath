@@ -3,6 +3,7 @@
 *.log
 *.wbml
 *.wbvectors
+*.doc
 Makefile
 MYMETA.*
 
