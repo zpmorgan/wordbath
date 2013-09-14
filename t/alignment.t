@@ -1,5 +1,5 @@
 use Modern::Perl;
-use Test::More tests => 6;
+use Test::More tests => 8;
 use Test::Number::Delta within => 4*10**9;
 # 'epsilon' of 4 billion.
 
@@ -24,5 +24,7 @@ test_alignment( pattern => 'I\'m Katu, an', pos_sec => 36.074);
 test_alignment( pattern => 'means that yo', pos_sec => 13.101);
 test_alignment( pattern => 'You are using', pos_sec => 02.235);
 test_alignment( pattern => 'and it offers', pos_sec => 06.596);
+test_alignment( pattern => 'several techn', pos_sec => 19.682);
+test_alignment( pattern => 'Perl, GStream', pos_sec => 21.595);
 
 
