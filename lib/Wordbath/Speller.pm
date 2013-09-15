@@ -126,7 +126,7 @@ sub clear_missps{
 
 sub add_missp{
   my ($self,$word) = @_;
-  my $txt = $word->word;
+  my $txt = $word->text;
   my $tv = $self->_missp_view;
   my $model = $tv->get_model;
   my $i = $model->get_iter_first;

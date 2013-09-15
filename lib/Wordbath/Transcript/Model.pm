@@ -179,6 +179,11 @@ has _last_tried_slabel => (
   is => 'rw',
 );
 
+has _last_appended_slabel => (
+  is => 'rw',
+  isa => 'Wordbath::Transcript::Snippet',
+);
+
 sub scan_for_slabels{
   my $self = shift;
   my $txt = $self->current_text;
@@ -477,20 +482,44 @@ sub get_speaker_by_label{
   return $speaker;
 }
 
-##### SPELLCHECK STUFF
 {
-  package Wordbath::Transcript::Word;
+  package Wordbath::Transcript::Snippet;
   use Moose;
-
-  has word => (isa => 'Str', is => 'ro', required => 1);
+  has text => (isa => 'Str', is => 'ro', required => 1);
   has [qw|start end|] => (isa => 'Gtk3::TextIter', is => 'ro', required => 1);
-  has [qw|_start_mark _end_mark|] => (isa => 'Gtk3::TextMark', is => 'rw');
+  has _start_mark =>
+    (isa => 'Gtk3::TextMark', is => 'rw', clearer=>'_delete_start_mark');
+  has _end_mark =>
+    (isa => 'Gtk3::TextMark', is => 'rw', clearer=>'_delete_end_mark');
   has _stable => (isa => 'Bool', is => 'rw', default => 0);
-  has buf => (isa => 'Gtk3::TextBuffer', is => 'ro', builder => 'b_buf', lazy=>1);
+  has buf => (isa => 'Gtk3::TextBuffer', is => 'ro', builder => '_find_buf', lazy=>1);
 
-  sub b_buf{
+  my $_IN_GLOBAL_DESTRUCTION = 0;
+  eval 'END {$_IN_GLOBAL_DESTRUCTION = 1}';
+
+  sub is_valid{
     my $self = shift;
-    if ($self->is_stable){
+    return 0 unless $self->buf;
+    unless ($self->_stable){ #iterator invalidated somehow?
+      return 0 unless $self->start->get_buffer;
+      return 0 unless $self->start and $self->end;
+    }
+    return 1;
+  }
+  sub DEMOLISH{
+    my $self = shift;
+    return if $_IN_GLOBAL_DESTRUCTION;
+    return unless $self->is_stable;
+    return unless $self->is_valid;
+    $self->buf->delete_mark($self->_start_mark);
+    $self->buf->delete_mark($self->_end_mark);
+    $self->_delete_start_mark;
+    $self->_delete_end_mark;
+    $self->_stable(0);
+  }
+  sub _find_buf{
+    my $self = shift;
+    if ($self->_stable){
       return $self->_end_mark->get_buffer;
     } else {
       return $self->start->get_buffer;
@@ -498,14 +527,13 @@ sub get_speaker_by_label{
   }
   sub is_stable{
     my $self = shift;
-    my $res = $self->_stable;
-    return $res
+    return $self->_stable;
   }
   sub make_stable{
     my $self = shift;
-    return if $self->is_stable;
-    my $smark = $self->buf->create_mark ('sw'.rand, $self->start, 1);
-    my $emark = $self->buf->create_mark ('ew'.rand, $self->end, 1);
+    return if $self->_stable;
+    my $smark = $self->buf->create_mark (undef,$self->start, 1);
+    my $emark = $self->buf->create_mark (undef,$self->end, 1);
     $self->_start_mark($smark);
     $self->_end_mark($emark);
     $self->_stable(1);
@@ -515,6 +543,7 @@ sub get_speaker_by_label{
     if (!$self->is_stable){
       return $self->start;
     }
+    #confess unless $self->start_mark;
     return $self->buf->get_iter_at_mark($self->start_mark);
   }
   sub end_iter{
@@ -540,10 +569,33 @@ sub get_speaker_by_label{
     }
     $self->_start_mark;
   }
+}
+
+##### SPELLCHECK STUFF
+{
+  package Wordbath::Transcript::Snippet::Word;
+  use Moose;
+
+  extends 'Wordbath::Transcript::Snippet';
+
+  has is_tagged => (is=>'rw',isa=>'Bool', default=>0);
+
+  my $_IN_GLOBAL_DESTRUCTION = 0;
+  eval 'END {$_IN_GLOBAL_DESTRUCTION = 1}';
+
+  sub DEMOLISH{
+    my $self = shift;
+    return if $_IN_GLOBAL_DESTRUCTION;
+    return unless $self->is_valid;
+    $self->untag if $self->is_tagged;
+  }
+
   sub tag_missp{
     my $self = shift;
     my $buf = $self->buf;
+    $self->make_stable;
     $self->buf->apply_tag_by_name('missp', $self->start_iter,$self->end_iter);
+    $self->is_tagged(1);
   }
   sub untag{
     my $self = shift;
@@ -553,6 +605,7 @@ sub get_speaker_by_label{
     # are these backwards?
     #say 'UNTAGGING' . $self .','. $self->start_iter->get_offset .','. $e->get_offset;
     $self->buf->remove_all_tags($s, $e);
+    $self->is_tagged(0);
   }
 
   use Text::Hunspell;
@@ -569,7 +622,7 @@ sub get_speaker_by_label{
 
   sub check_spelling{
     my $self = shift;
-    my $txt = $self->word;
+    my $txt = $self->text;
     my $cached = $self->_cached_spellings->{$txt};
     return $cached if $cached;
     $txt =~ s/^'//;
@@ -598,19 +651,19 @@ has _misspelled_words => (
 sub add_misspelled_word{
   my ($self, $word) = @_;
   $word->make_stable;
-  push @{$self->_misspelled_words->{$word->word}}, $word; #lol
+  push @{$self->_misspelled_words->{$word->text}}, $word;
 }
 sub remove_misspelled_word{
   my ($self, $word) = @_;
   $word->untag;
   $word->tag_missp;
   $word->untag;
-  my @txt_instances = @{$self->_misspelled_words->{$word->word}};
+  my @txt_instances = @{$self->_misspelled_words->{$word->text}};
   @txt_instances = grep {$_ != $word} @txt_instances;
   if (@txt_instances == 0){
-    delete $self->_misspelled_words->{$word->word};
+    delete $self->_misspelled_words->{$word->text};
   } else {
-    $self->_misspelled_words->{$word->word} = \@txt_instances;
+    $self->_misspelled_words->{$word->text} = \@txt_instances;
   }
 }
 sub all_misspelled_words{
@@ -746,8 +799,8 @@ sub spellcheck_range {
     my $word_txt = $buf->get_text($start,$w_end,1);
     #warn $word_txt;
     #die if $word_txt eq ' ';
-    my $word = Wordbath::Transcript::Word->new(
-      word => $word_txt,
+    my $word = Wordbath::Transcript::Snippet::Word->new(
+      text => $word_txt,
       start => $start->copy,
       end => $w_end->copy,
     );
