@@ -16,6 +16,8 @@ use XML::LibXML ':all';
 has from_wbml => ( isa => 'Str', is => 'ro',);
 has from_wbml_file => ( isa => 'Str', is => 'ro',);
 
+has alignment_sample_density => ( isa => 'Num', is => 'rw', default=>.05);
+
 has buf => (
   is => 'ro',
   isa => 'Gtk3::TextBuffer',
@@ -52,6 +54,7 @@ sub BUILD{
   my $self = shift;
   $self->buf->signal_connect_swapped('mark-set', \&_on_buf_mark_set, $self);
   $self->buf->signal_connect_swapped('changed', \&_on_buf_changed, $self);
+  $self->buf->signal_connect_swapped('insert-text', \&_on_buf_insert, $self);
   $self->buf->signal_connect_swapped('delete-range', \&on_delete_range, $self);
   my $misspelled_word_tag = $self->buf->create_tag('missp');
   $misspelled_word_tag->set("underline-set" => 1);
@@ -68,6 +71,16 @@ sub _on_buf_mark_set{
   my ($self,$iter, $mark, $txt) = @_;
   $self->_on_pos_change;
 }
+sub _on_buf_insert{
+  my ($self, $loc, $txt, $len, $buf) = @_;
+  return unless $len == 1;
+  return unless rand() < $self->alignment_sample_density;
+  $self->audiosync->vector_here_at (
+    type => 'sample',
+    iter => $loc,
+  );
+}
+
 sub _on_buf_changed{
   my ($self, $txt) = @_;
   $self->_on_pos_change;
