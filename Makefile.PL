@@ -8,6 +8,7 @@ WriteMakefile(
     'GStreamer'    => "0",
     'Gtk3'         => "0",
     'Moose'        => "0",
+    'JSON'         => "0",
     'Modern::Perl' => 0,
     'Pango'        => 0,
     'File::Slurp'  => 0,
