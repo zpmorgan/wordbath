@@ -297,7 +297,7 @@ sub _build_arbitkeys{
   $keys->handle( keycombo => '<t>s', cb => sub{
       $self->transcript->model->sync_text_to_pos_ns( $self->player->pos_ns)});
   $keys->handle( keycombo => '<a>s', cb => sub{
-      my $pos_ns = $self->transcript->model->audio_pos_ns_at_cursor;
+      my $pos_ns = $self->transcript->model->pos_ns_at_cursor;
       $self->player->seek_ns($pos_ns);
     });
   $keys->handle( keycombo => 'F2', cb => sub{

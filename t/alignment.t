@@ -13,7 +13,7 @@ sub test_alignment {
   my $pattern = $args{pattern};
   my $pos_ns = $args{pos_sec} * 10**9;
   my ($i,$e) = $model->find_text($pattern);
-  my $guess_ns = $model->audiosync->audio_pos_ns_at($i);
+  my $guess_ns = $model->audiosync->guess_pos_ns_from_textiter($i);
   delta_ok ( $pos_ns, $guess_ns, "guessed position for '$pattern'".
     "\n  $pos_ns :: $guess_ns" );
 }

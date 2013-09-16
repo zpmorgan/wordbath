@@ -148,23 +148,19 @@ sub insert_sync_vector_here_at_pos{
   my $iter = $self->cursor_iter;
   $self->audiosync->vector_here_at (type => $args{type}, iter => $iter);#, pos_ns => $args{pos_ns});
 }
-sub audio_pos_ns_at_cursor{
-  my $self = shift;
-  return $self->audiosync->audio_pos_ns_at;
-}
 
 sub sync_text_to_pos_ns{
   my $self = shift;
   my $pos_ns = shift;
   $self->logger->INFO("syncing text to $pos_ns ns.");
-  my $iter = $self->audiosync->iter_at_audio_pos($pos_ns);
+  my $iter = $self->audiosync->guess_textiter_from_pos_ns($pos_ns);
   $self->buf->place_cursor($iter);
 }
 sub pos_ns_at_cursor{
   my $self = shift;
   my $buf = $self->buf;
   my $iter = $self->cursor_iter;
-  my $pos_ns = $self->audiosync->audio_pos_at_iter($iter);
+  my $pos_ns = $self->audiosync->guess_pos_ns_from_textiter($iter);
   $self->logger->INFO( "estimating $pos_ns ns at cursor..");
   return $pos_ns;
 }
