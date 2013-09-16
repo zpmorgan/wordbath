@@ -859,14 +859,6 @@ sub spell_replace_all_words{
 sub spell_replace_one_word{
   my ($self, $incorrect, $correct, $start,$end) = @_;
 }
-use JSON;
-use File::Slurp;
-sub save_vectors{
-  my ($self, $path) = @_;
-  my $json = encode_json ($self->audiosync->to_hash);
-  write_file($path, {binmode => ':utf8'}, $json);
-  $self->logger->NOTICE("wrote sync vectors to $path");
-}
 
 sub load_wbml{
   my ($self, $wbml) = @_;

@@ -529,16 +529,10 @@ sub wbml_path{
 }
 sub save_data{
   my $self = shift;
-  my $audio_path = $self->_audio_path;
-  my $vectors_file_path = $audio_path . '.wbvectors';
-  $self->transcript->model->save_vectors($vectors_file_path);
-  say("wrote sync vectors to $vectors_file_path");
-
   my $wbml_path= $self->wbml_path;
   $self->transcript->model->save_wbml($wbml_path);
   say("wrote wbml to $wbml_path");
 }
-
 sub save_text{
   my $self = shift;
   my $file_path = $self->_text_file_path();
@@ -557,13 +551,17 @@ sub _audio_dir{
   die $audio_path unless $1;
   return $1;
 }
+
 sub export_doc{
   my $self = shift;
   $self->save_text;
   my $file_path = $self->_text_file_path();
+  # This screws up and freezes libreoffice somehow:
   #my $cmd = 'libreoffice --headless convert-to doc ' .
   #  ' --outdir '. $self->_audio_dir . ' ' .
   #  $self->_text_file_path;
+
+  # unoconv works.
   my $cmd = "unoconv -v --format doc $file_path";
   say "running command: $cmd";
   my $out = `$cmd`;
