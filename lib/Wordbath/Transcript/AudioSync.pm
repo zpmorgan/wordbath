@@ -97,18 +97,18 @@ sub guess_pos_ns_from_textiter{0}
   around 'guess_textiter_from_pos_ns' => sub{
     my $orig = shift;
     my $self = shift;
-    return $self->extrapolate_textiter_from_pos_ns(@_);
+    return $self->interpolate_textiter_from_pos_ns(@_);
   };
   around 'guess_pos_ns_from_textiter' => sub{
     my $orig = shift;
     my $self = shift;
-    return $self->extrapolate_pos_ns_from_textiter(@_);
+    return $self->interpolate_pos_ns_from_textiter(@_);
   };
 
   no Moose::Role;
   use PDL;
   #x is audio nanoseconds, y (predicted) is basically character offset in text
-  sub extrapolate_textiter_from_pos_ns{
+  sub interpolate_textiter_from_pos_ns{
     my ($self, $pos_ns) = @_;
     #my $sync = $self->sync;
     my @SVs = @{$self->_sync_vectors};
@@ -123,11 +123,11 @@ sub guess_pos_ns_from_textiter{0}
     my $y = float(map {$_->pos_chars} @SVs);
     my $xi = float($pos_ns);
     my ($yi,$err) = $xi->interpol($x, $y);
-    # currently this warns on extrapolation, and probably doesn't do it right.
+    # currently this warns on interpolation, and probably doesn't do it right.
     my $iter = $buf->get_iter_at_offset ($yi->floor->sclr);
     return $iter;
   }
-  sub extrapolate_pos_ns_from_textiter{
+  sub interpolate_pos_ns_from_textiter{
     my ($self, $iter) = @_;
     #my $sync = $self->sync;
     $iter = $self->transcript_model->cursor_iter unless $iter;
@@ -148,6 +148,27 @@ sub guess_pos_ns_from_textiter{0}
 {
   package Wordbath::Transcript::AudioSync::Role::Interpolate_with_culling;
   use Moose::Role;
+  requires ('interpolate_pos_ns_from_textiter', 'interpolate_textiter_from_pos_ns');
+  around 'guess_textiter_from_pos_ns' => sub{
+    my $orig = shift;
+    my $self = shift;
+    return $self->culling_interpolate_textiter_from_pos_ns(@_);
+  };
+  around 'guess_pos_ns_from_textiter' => sub{
+    my $orig = shift;
+    my $self = shift;
+    return $self->culling_interpolate_pos_ns_from_textiter(@_);
+  };
+  sub culling_interpolate_pos_ns_from_textiter{
+    my $self = shift;
+    return $self->interpolate_pos_ns_from_textiter(@_);
+  }
+  sub culling_interpolate_textiter_from_pos_ns{
+    my $self = shift;
+    return $self->interpolate_textiter_from_pos_ns(@_);
+  }
 }
 with 'Wordbath::Transcript::AudioSync::Role::Interpolate';
+with 'Wordbath::Transcript::AudioSync::Role::Interpolate_with_culling';
+
 1;
