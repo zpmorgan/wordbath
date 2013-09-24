@@ -238,7 +238,6 @@ sub next_slabel_in_text{
   }
   else {
     $self->logger->INFO( 'collecting speaker label');
-    $self->insert_sync_vector_here_at_pos(type => 'slabel');#pos_ns => $args{pos_ns} );;
     $self->collect_slabels;
     my $next_lbl = $self->_next_untried_slabel;
     $self->_append_slabel($next_lbl);
@@ -273,6 +272,7 @@ sub _append_slabel{
   #$self->scroll_to_end();
   $self->blurp('end_activity');
   $self->_last_tried_slabel($next_lbl);
+  $self->insert_sync_vector_here_at_pos(type => 'slabel');#pos_ns => $args{pos_ns} );;
 }
 
 sub append_text{
@@ -972,6 +972,7 @@ sub _wbml_doc{
         $p->appendChild($text);
         $pending_text = '';
       };
+
       my $react_to_marks = sub{
         my $i = shift;
         my $marks = $i->get_marks || [];
@@ -988,7 +989,12 @@ sub _wbml_doc{
       };
 
       my $char_i = $line_iter->copy;
-      $char_i->forward_chars(length "$slabel: ") if $slabel;
+      if ($slabel){
+        for( 1..length("$slabel: ")){
+          $react_to_marks->($char_i); #find alignment vectors.
+          $char_i->forward_char;
+        }
+      }
       until ($char_i->equal($line_end)){
         $react_to_marks->($char_i); #find alignment vectors.
         my $ch = $char_i->get_char;
