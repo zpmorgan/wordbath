@@ -88,6 +88,7 @@ sub vector_here_at{
   );
   $self->_vecs_by_mark_name->{$mark->get_name} = $vec;
   $self->_sync_vector_push($vec);
+  return $vec;
 }
 
 sub vector_from_mark{

@@ -146,7 +146,10 @@ sub insert_sync_vector_here_at_pos{
   die unless $args{type};
   my $buf = $self->buf;
   my $iter = $self->cursor_iter;
-  $self->audiosync->vector_here_at (type => $args{type}, iter => $iter);#, pos_ns => $args{pos_ns});
+  my $vec = $self->audiosync->vector_here_at (type => $args{type}, iter => $iter);
+  if ($args{type} eq 'anchor'){
+    $vec->mark->set_visible(1);
+  }
 }
 
 sub sync_text_to_pos_ns{

@@ -300,6 +300,9 @@ sub _build_arbitkeys{
       my $pos_ns = $self->transcript->model->pos_ns_at_cursor;
       $self->player->seek_ns($pos_ns);
     });
+  $keys->handle( keycombo => '<v>a', cb => sub{
+    $self->transcript->model->insert_sync_vector_here_at_pos(type => 'anchor');
+    });
   $keys->handle( keycombo => 'F2', cb => sub{
       $self->transcript->model->insert_time_ns( $self->player->pos_ns )});
   return $keys;
