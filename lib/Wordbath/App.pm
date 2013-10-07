@@ -205,9 +205,9 @@ sub _load_styles{
 
   my $p = Gtk3::CssProvider->new;
   my $css_file_path = $Bin . '/assets/' . 'delorean-noir.css';
-  # $p->load_from_file($css_filename);
-  my $cssdata = read_file($css_file_path);
-  $p->load_from_data($cssdata, -1);
+  $p->load_from_path($css_file_path);
+  #my $cssdata = read_file($css_file_path);
+  #$p->load_from_data($cssdata, -1);
   my $d = Gtk3::Gdk::Display::get_default ();
   my $s = $d->get_default_screen;
   Gtk3::StyleContext::add_provider_for_screen (
