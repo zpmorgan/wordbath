@@ -201,7 +201,7 @@ sub _load_styles{
   my $self = shift;
   use Cwd;
   my $pd = getcwd;
-  chdir $Bin;
+  chdir $Bin;# . '/assets';
 
   my $p = Gtk3::CssProvider->new;
   my $css_file_path = $Bin . '/assets/' . 'delorean-noir.css';
