@@ -210,8 +210,8 @@ sub _load_styles{
   #$p->load_from_data($cssdata, -1);
   my $d = Gtk3::Gdk::Display::get_default ();
   my $s = $d->get_default_screen;
-  Gtk3::StyleContext::add_provider_for_screen (
-    $s, $p, Gtk3::STYLE_PROVIDER_PRIORITY_USER);
+  #Gtk3::StyleContext::add_provider_for_screen (
+  #  $s, $p, Gtk3::STYLE_PROVIDER_PRIORITY_USER);
 
   chdir $pd;
 }
