@@ -189,6 +189,7 @@ sub play_pause{
   my $new_state = $self->player->toggle_play_state;
   my $pa_type = $new_state eq 'playing' ? 'go' : 'stop';
   $self->transcript->model->insert_sync_vector_here_at_pos(type => $pa_type);
+  return 1;
 }
 sub rel_seek{
   my ($self, $secs) = @_;
@@ -205,9 +206,7 @@ sub _load_styles{
 
   my $p = Gtk3::CssProvider->new;
   my $css_file_path = $Bin . '/assets/' . 'delorean-noir.css';
-  $p->load_from_path($css_file_path);
-  #my $cssdata = read_file($css_file_path);
-  #$p->load_from_data($cssdata, -1);
+  # $p->load_from_path($css_file_path);
   my $d = Gtk3::Gdk::Display::get_default ();
   my $s = $d->get_default_screen;
   #Gtk3::StyleContext::add_provider_for_screen (
