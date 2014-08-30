@@ -205,12 +205,13 @@ sub _load_styles{
   chdir $Bin;# . '/assets';
 
   my $p = Gtk3::CssProvider->new;
-  my $css_file_path = $Bin . '/assets/' . 'delorean-noir.css';
-  # $p->load_from_path($css_file_path);
+  my $css_file_path = $Bin . 
+    '/assets/dorian-theme-3.12/gtk-3.0/gtk-main-dark.css';
+  $p->load_from_path($css_file_path);
   my $d = Gtk3::Gdk::Display::get_default ();
   my $s = $d->get_default_screen;
-  #Gtk3::StyleContext::add_provider_for_screen (
-  #  $s, $p, Gtk3::STYLE_PROVIDER_PRIORITY_USER);
+  Gtk3::StyleContext::add_provider_for_screen (
+    $s, $p, Gtk3::STYLE_PROVIDER_PRIORITY_USER);
 
   chdir $pd;
 }
