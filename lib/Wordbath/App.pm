@@ -366,17 +366,15 @@ sub _populate_ratbuttbar{
 has _miscolorized_ratbutt => (
   is => 'rw',
   isa => 'Gtk3::Button',
-  clearer => '_lahdskajshflkg',
+  clearer => '_normalize_miscolorized',
 );
 sub _clear_miscolorized_ratbutt{
   my ($self) = @_;
   my $rb = $self->_miscolorized_ratbutt;
   return unless $rb;
   $rb->get_style_context->restore;
-  $self->_lahdskajshflkg();
-  #why do I need these? shouldn't adding a class cause it to re-render?
-  $rb->hide;
-  $rb->show;
+  $self->_normalize_miscolorized();
+  $rb->queue_draw;
 }
 sub _choose_miscolorized_ratbutt{
   my ($self,$rb) = @_;
@@ -384,9 +382,7 @@ sub _choose_miscolorized_ratbutt{
   $rb->get_style_context->save;
   $rb->get_style_context->add_class("miscolorized");
   $self->_miscolorized_ratbutt($rb);
-  $rb->hide;
-  $rb->show;
-  #$rb->queue_draw;
+  $rb->queue_draw;
 }
 
 sub _ratbutt_clicked{
