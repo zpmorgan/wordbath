@@ -204,8 +204,12 @@ sub _load_styles{
   my $pd = getcwd;
   chdir $Bin;# . '/assets';
 
+  unless (-e $Bin . '/assets/dorian-theme-3.12/gtk-3.0/gtk-main-dark.css'){
+    die "Theme file not found. Try 'git submodule init' and 'git submodule update'";
+  }
+
   my $p = Gtk3::CssProvider->new;
-  my $css_file_path = $Bin . 
+  my $css_file_path = $Bin .
     '/assets/dorian-theme-3.12/gtk-3.0/gtk-main-dark.css';
   $p->load_from_path($css_file_path);
   my $d = Gtk3::Gdk::Display::get_default ();
