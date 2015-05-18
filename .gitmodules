@@ -1,0 +1,3 @@
+[submodule "assets/dorian-theme-3.12"]
+	path = assets/dorian-theme-3.12
+	url = https://github.com/zpmorgan/dorian-theme-3.12
