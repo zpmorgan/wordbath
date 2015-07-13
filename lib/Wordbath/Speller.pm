@@ -100,7 +100,7 @@ sub _build_missp_view{
 
   my $ren_ignore = Gtk3::CellRendererPixbuf->new();
   my $icolumn = Gtk3::TreeViewColumn->new_with_attributes(ignore => $ren_ignore);#, pixbuf=>1);
-  $icolumn->set_attributes ( $ren_ignore, 'stock-id' => 1);#'gtk-add' );
+  $icolumn->set_attributes ( $ren_ignore, 'icon-name' => 1);#'gtk-add' );
   $tree->append_column($icolumn);
 
   $tree->set_grid_lines ('vertical');
