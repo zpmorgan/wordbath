@@ -25,13 +25,25 @@ if ($location){
     if (-e "$workdir/$file"){
       say "$file already exists in $workdir.";
     } else {
-      use LWP::Simple;
-      my $data = get $location;
-      die 'audio download failed.' unless defined($data);
+      require LWP::UserAgent;
+      my $ua = LWP::UserAgent->new;
+      $ua->timeout(10);
+      $ua->env_proxy;
 
-      use File::Slurp;
-      write_file( "$workdir/$file", $data);
-      say "Saved as $file    in directory:   $workdir";
+      my $response = $ua->get($location);
+
+      if ($response->is_success) {
+        #print $response->decoded_content;  # or whatever
+        use File::Slurp;
+        write_file( "$workdir/$file", $response->decoded_content);
+        say "Saved as $file    in directory:   $workdir";
+      }
+      else {
+        say STDERR "audio download failed.";
+        say STDERR $location;
+        say STDERR $response->status_line;
+        die;
+      }
     }
   }else {
     #given a filesystem path.

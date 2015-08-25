@@ -18,7 +18,7 @@ WriteMakefile(
     'PDL'          => 0,
     'Text::Hunspell' => 0,
     'Log::Fast'    => 0,
-    'LWP::Simple'  => 0,
+    'LWP::Protocol::https' => 0,
     'Path::Class'  => 0,
     'Test::XML::Compare' => 0,
   },
