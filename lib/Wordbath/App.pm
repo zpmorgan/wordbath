@@ -248,13 +248,18 @@ sub _seekbar_saught{
 
 # gtk scale bars only adjust from button2 clicks.
 # This changes the event button and has it continue to propagate.
+# Update: This seems to no longer be the case.
+#         I'm keeping this here in case its behavior reverts and becomes confusing.
+#         This does nothing currently.
 sub _click_1_to_2{
+  return 0;
   my ($widget, $event) = @_;
   if( $event->button == 1){
     $event->button (2);
   }
   return 0;
 }
+
 # Hotkey stuff.
 my $_method_hotkeys = [
   ['shift-mask','space', \&play_pause],
