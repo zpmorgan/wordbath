@@ -178,6 +178,7 @@ sub _build_win{
 
   $self->_load_styles();
   $win->show_all();
+  $self->transcript->focus_text_widget();
   $self->load_dialog_if_relevant();
   return $win;
 }

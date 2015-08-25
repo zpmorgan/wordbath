@@ -97,7 +97,10 @@ has _deferred_end => (
   is => 'rw',
 );
 
-
+sub focus_text_widget{
+  my $self = shift;
+  $self->_text_widget->grab_focus;
+}
 
 
 
