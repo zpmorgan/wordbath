@@ -381,14 +381,13 @@ sub _clear_miscolorized_ratbutt{
   my ($self) = @_;
   my $rb = $self->_miscolorized_ratbutt;
   return unless $rb;
-  $rb->get_style_context->restore;
+  $rb->get_style_context->remove_class("miscolorized");
   $self->_normalize_miscolorized();
   $rb->queue_draw;
 }
 sub _choose_miscolorized_ratbutt{
   my ($self,$rb) = @_;
   $self->_clear_miscolorized_ratbutt if $self->_miscolorized_ratbutt;
-  $rb->get_style_context->save;
   $rb->get_style_context->add_class("miscolorized");
   $self->_miscolorized_ratbutt($rb);
   $rb->queue_draw;
