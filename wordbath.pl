@@ -19,7 +19,7 @@ my $file;
 
 if ($location){
   #is it a url? if so, do we have to download?
-  if ($location =~  m|^https?://.*/([^/]*\.[^/]{2,}+)$| ){
+  if ($location =~  m|^https?://.*/([^?/]*\.[^?/]{2,}+)(\?.*)?$| ){
     $file = $1;
     mkdir $workdir unless -d $workdir;
     if (-e "$workdir/$file"){
