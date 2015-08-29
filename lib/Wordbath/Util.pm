@@ -8,7 +8,7 @@ require Exporter;
 
 @ISA = qw(Exporter AutoLoader);
 @EXPORT = qw();#round nearest);
-@EXPORT_OK = qw(round round_nearest );
+@EXPORT_OK = qw(round_nearest );
 $VERSION = '666';
 
 %EXPORT_TAGS = ( all => [ @EXPORT_OK ] );
