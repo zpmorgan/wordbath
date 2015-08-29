@@ -19,16 +19,6 @@ $VERSION = '666';
 
 $Wordbath::Util::half = 0.50000000000008;
 
-sub round {
- my $x;
- my @res  = map {
-  if ($_ >= 0) { POSIX::floor($_ + $Wordbath::Util::half); }
-     else { POSIX::ceil($_ - $Wordbath::Util::half); }
- } @_;
-
- return (wantarray) ? @res : $res[0];
-}
-
 #------ "Nearest" routines (round to a multiple of any number)
 
 sub round_nearest {

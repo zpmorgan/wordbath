@@ -62,6 +62,15 @@ sub _build_scrolled_widget{
   return $scrolled;
 }
 
+
+has [qw[_unchecked_start _unchecked_end]] => (
+  isa => 'Gtk3::TextMark',
+  is => 'rw',
+);
+sub _resolve_unspellchecked_word{
+  my $self = shift;
+}
+
 sub _on_txt_move{
   my ($txt,$step_size, $count, $extend_selection, $self) = @_;
 }
