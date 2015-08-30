@@ -5,6 +5,7 @@ use FindBin qw'$Bin';
 use lib $Bin . '/lib';
 use Wordbath::App;
 use Wordbath::Player;
+use Path::Tiny;
 
 my $location = $ARGV[0];
 
@@ -34,8 +35,7 @@ if ($location){
 
       if ($response->is_success) {
         #print $response->decoded_content;  # or whatever
-        use File::Slurp;
-        write_file( "$workdir/$file", $response->decoded_content);
+        path( "$workdir/$file")->spew_raw( $response->decoded_content);
         say "Saved as $file    in directory:   $workdir";
       }
       else {

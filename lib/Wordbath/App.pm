@@ -5,7 +5,7 @@ use utf8;
 use FindBin '$Bin';
 use Gtk3 -init;
 use Pango;
-use File::Slurp;
+use Path::Tiny;
 use lib 'lib';
 use Wordbath::Util;
 use Wordbath::Speller;
@@ -548,7 +548,7 @@ sub save_text{
   #make sure there's a newline at the end?
   $txt .= "\n" unless $txt =~ m|\n$|;
 
-  write_file($file_path, {binmode => ':utf8'}, $txt);
+  path($file_path)->spew_utf8($txt);
   $self->logger->NOTICE("wrote to $file_path");
   say("wrote to $file_path");
 }

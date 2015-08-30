@@ -2,7 +2,7 @@ use Test::More tests => 13;
 use Modern::Perl;
 use XML::LibXML;
 use Test::XML::Compare;
-use File::Slurp;
+use Path::Tiny;
 use utf8;
 
 use lib 'lib';
@@ -40,14 +40,14 @@ sub test_wbml{
   isa_ok ($tmodel => 'Wordbath::Transcript::Model');
   is( $tmodel->current_text, $args{target_text}, "case $name: text comparison");
 
-  my $in = $args{wbml} // read_file($args{wbml_path});
+  my $in = $args{wbml} // path($args{wbml_path})->slurp_utf8;
   my $out = $tmodel->to_wbml;
   my $xml_same = is_xml_same ($in, $out, "compare xml, input vs output: case $name ");
   unless($xml_same){
     warn;
     diag($@);
     my $out_file = "/tmp/$name.wbml";
-    write_file($out_file, $tmodel->to_wbml);
+    path($out_file)->spew_utf8($tmodel->to_wbml);
     diag("SPEWED OUTPUT TO $out_file");
   }
 }

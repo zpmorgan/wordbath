@@ -12,7 +12,6 @@ WriteMakefile(
     'JSON'         => 0,
     'Modern::Perl' => 0,
     'Pango'        => 0,
-    'File::Slurp'  => 0,
     'Array::Compare' => 0,
     'XML::LibXML'  => 0,
     'PDL'          => 0,
@@ -20,6 +19,7 @@ WriteMakefile(
     'Log::Fast'    => 0,
     'LWP::Protocol::https' => 0,
     'Path::Class'  => 0,
+    'Path::Tiny'  => 0,
     'Test::XML::Compare' => 0,
   },
 );
