@@ -28,7 +28,7 @@ sub load_or_create{
   #class defaults are good enough?
   return $self unless (-e $self->config_file_path);
 
-  my $json = path( $self->config_file_path)->slurp_utf8
+  my $json = path( $self->config_file_path)->slurp_utf8;
   my $conf_data = decode_json($json);
   $self->working_dir($conf_data->{working_dir});
   return $self;
@@ -40,7 +40,7 @@ sub save{
       # don't encode config file path. what if you move the file? why would it help?
     });
   my $cpath = $self->config_file_path;
-  path($cpath)->spew_utf8 $json;
+  path($cpath)->spew_utf8($json);
   say "wrote config to $cpath";
 }
 
