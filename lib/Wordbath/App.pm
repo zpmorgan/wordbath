@@ -334,6 +334,11 @@ sub _win_key_press{
 my @audio_rate_options = (
   .25,.35,.45,.55,.65,.75,.85,1,1.25,1.5,1.75,2
 );
+my @audio_rate_hotkeys = (
+  undef,undef, '<;>e',undef, '<;>r',undef, undef,
+  '<;>t', #1.0
+  undef, '<;>y', undef, '<;>u',
+);
 
 # rate buttons. feel free to rename if you come up with a better system.
 has _ratbutts => (is => 'rw', isa => 'ArrayRef', default => sub{[]});
@@ -355,10 +360,16 @@ sub _populate_ratbuttbar{
   $self->_ratbuttbar ($container);
   # click on these buttons to change audio speed.
   my @rate_buttons;
-  for my $rate (@audio_rate_options){
+  for (0..@audio_rate_options-1){
+    my $rate = $audio_rate_options[$_];
+    my $hotkey = $audio_rate_hotkeys[$_];
     my $percent_text = ($rate*100) . '%';
     my $ratbutt = Gtk3::Button->new ($percent_text);
     $ratbutt->signal_connect ( clicked => \&_ratbutt_clicked, [$self,$rate]);
+    if ($hotkey){
+      $self->_arbitkeys->handle( keycombo => $hotkey, cb => sub{
+        $ratbutt->activate(); });
+    }
     push @rate_buttons, $ratbutt;
   }
   for (@rate_buttons){
