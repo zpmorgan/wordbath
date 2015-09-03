@@ -67,9 +67,58 @@ sub BUILD{
   }
 }
 
+has _working_range_start => (
+  is => 'rw', isa => 'Gtk3::TextMark', lazy => 1,
+  default => sub{
+    my $self = shift;
+    my ($start,$end) = $self->buf->get_bounds();
+    return $self->buf->create_mark('wrl', $start, 1);},
+);
+has _working_range_end => (
+  is => 'rw', isa => 'Gtk3::TextMark', lazy => 1,
+  default => sub{
+    my $self = shift;
+    my ($start,$end) = $self->buf->get_bounds();
+    return $self->buf->create_mark('wrr', $end, 0);},
+);
+
+# returns iters at beginning & end of word.
+sub _word_at_cursor{
+  my $self = shift;
+  my $start= $self->cursor_iter();
+  my $end= $self->cursor_iter();
+  _b_to_word_begin($self->buf,$start);
+  _f_to_word_end($self->buf,$end);
+  return ($start,$end);
+}
+
+sub _evaluate_online_spelling{
+  my $self = shift;
+  my ($new_start, $new_end) = $self->_word_at_cursor();
+  my $old_start = $self->buf->get_iter_at_mark($self->_working_range_start);
+  my $old_end = $self->buf->get_iter_at_mark($self->_working_range_end);
+  $self->clear_misspelled_word_instances_in_range($old_start, $old_end);
+
+  my $cursor = $self->cursor_iter();
+  if ($cursor->in_range($old_start, $old_end)){
+    $self->spellcheck_range($old_start, $new_start);
+    $self->spellcheck_range($new_end, $old_end);
+  } else {
+    $self->spellcheck_range($old_start, $old_end);
+  }
+  $self->buf->delete_mark($self->_working_range_start);
+  $self->buf->delete_mark($self->_working_range_end);
+  $self->_working_range_start($self->buf->create_mark('wrl',$new_start,1));
+  $self->_working_range_end ($self->buf->create_mark('wrr',$new_end,0));
+}
+
 sub _on_buf_mark_set{
   my ($self,$iter, $mark, $txt) = @_;
-  $self->_on_pos_change;
+  # if mark == cursor?
+  my $cursor_mark = $self->buf->get_insert;
+  if ($mark == $cursor_mark){
+    $self->_on_pos_change;
+  }
 }
 sub _on_buf_insert{
   my ($self, $loc, $txt, $len, $buf) = @_;
@@ -91,6 +140,7 @@ sub _on_buf_changed{
 sub on_delete_range{
   my ($self, $start,$end, $buf) = @_;
   return if $self->undo_suppressed;
+  $self->_evaluate_online_spelling();
 
   my $txt = $buf->get_text($start,$end, 1);
   my $s = $buf->create_mark(undef, $start, 1);
@@ -108,6 +158,7 @@ sub on_delete_range{
 
 sub _on_pos_change{
   my $self = shift;
+  $self->_evaluate_online_spelling();
   return unless $self->blurps('pos_change');
   my ($line, $col) = $self->get_text_pos();
 
@@ -295,7 +346,7 @@ sub append_line{
 sub insert_time_ns{
   my ($self, $time_ns) = @_;
   my $str = _fmt_time_ns($time_ns);
-  my $i= $self->buf->get_iter_at_mark($self->buf->get_insert);
+  my $i= $self->cursor_iter;
   $self->buf->insert($i, $str);
 }
 
@@ -571,7 +622,7 @@ sub get_speaker_by_label{
       warn 'getting mark from unstable word';
       $self->make_stable;
     }
-    $self->_end_mark;
+    $self->_start_mark;
   }
   sub end_mark{
     my $self = shift;
@@ -579,7 +630,7 @@ sub get_speaker_by_label{
       warn 'getting mark from unstable word';
       $self->make_stable;
     }
-    $self->_start_mark;
+    $self->_end_mark;
   }
 }
 
@@ -678,7 +729,22 @@ sub remove_misspelled_word{
     $self->_misspelled_words->{$word->text} = \@txt_instances;
   }
 }
-sub all_misspelled_words{
+sub clear_misspelled_word_instances_in_range{
+  my ($self,$start,$end) = @_;
+  my @instances;
+  for my $instance_list(values %{$self->_misspelled_words}){
+    for my $word (@$instance_list){
+      if ($word->start_iter->in_range($start,$end)
+          or $word->end_iter->in_range($start,$end)
+          or $start->in_range($word->start_iter, $word->end_iter)){
+              push @instances, $word;
+      }
+    }
+  }
+  $self->remove_misspelled_word($_) for @instances;
+}
+
+sub all_misspelled_word_instances{
   my $self = shift;
   my $specific_word = shift;
   if ($specific_word){
@@ -739,8 +805,8 @@ sub _b_to_word_begin{
   my ($buf,$iter) = @_;
   $iter->backward_char;
   while(!_at_word_begin($buf,$iter)){
-    $iter->backward_char;
-    return 0 if $iter->equal($buf->get_start_iter());
+    return unless $iter->backward_char;
+    #return 0 if $iter->equal($buf->get_start_iter());
   }
   return 1
 }
@@ -758,7 +824,7 @@ sub _f_to_word_end{
   my ($buf,$iter) = @_;
   $iter->forward_char;
   while(!_at_word_end($buf,$iter)){
-    $iter->forward_char;
+    return unless $iter->forward_char;
   }
 }
 
@@ -823,16 +889,16 @@ sub spellcheck_range {
 
 sub on_ignoring_missp{
   my ($self,$word_txt) = @_;
-  my @missp_words = $self->all_misspelled_words($word_txt);
+  my @missp_words = $self->all_misspelled_word_instances($word_txt);
   $self->remove_misspelled_word($_) for @missp_words;
 }
 
 sub spellcheck_all{
   my $self = shift;
   #reset the misspelled word widget
-  $self->speller_widget->clear_missps; 
+  $self->speller_widget->clear_missps;
   #remove those little red underlines:
-  my @missp_words = $self->all_misspelled_words;
+  my @missp_words = $self->all_misspelled_word_instances;
   $self->remove_misspelled_word($_) for @missp_words;
 
   my ($start, $end) = $self->buf->get_bounds();
