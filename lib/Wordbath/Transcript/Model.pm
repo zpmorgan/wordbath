@@ -100,7 +100,8 @@ sub _evaluate_online_spelling{
   $self->clear_misspelled_word_instances_in_range($old_start, $old_end);
 
   my $cursor = $self->cursor_iter();
-  if ($cursor->in_range($old_start, $old_end)){
+  if ($cursor->in_range($old_start, $old_end)
+      or $cursor->equal($old_end)){
     $self->spellcheck_range($old_start, $new_start);
     $self->spellcheck_range($new_end, $old_end);
   } else {
@@ -862,7 +863,6 @@ sub spellcheck_range {
   # expand range to encompass words partially overlapping range.
   my $buf = $self->buf;
   my $start = $range_start->copy;
-  #my $end= $range_end->copy;
   if (!_at_word_begin($buf,$start)){
     if (_inside_word($buf,$start)){
       _b_to_word_begin($buf,$start);
@@ -870,20 +870,18 @@ sub spellcheck_range {
       _f_to_word_begin($buf,$start);
     }
   }
-  #if (!_inside_word($buf,$end)){
-  #  _f_to_word_end($buf,$end);
-  #}
   #check each word.
   while(1){
     if (!_at_word_begin($buf,$start)){
       last unless _f_to_word_begin($buf,$start);
     }
+    #don't do it if the betinning of the word is the end of the range.
+    last unless $start->get_offset() < $range_end->get_offset();
+
     my $w_end = $start->copy;
     _f_to_word_end($buf,$w_end);
     last unless _ranges_overlap($start,$w_end, $range_start,$range_end);
     my $word_txt = $buf->get_text($start,$w_end,1);
-    #warn $word_txt;
-    #die if $word_txt eq ' ';
     my $word = Wordbath::Transcript::Snippet::Word->new(
       text => $word_txt,
       start => $start->copy,
