@@ -725,6 +725,8 @@ sub remove_misspelled_word{
   @txt_instances = grep {$_ != $word} @txt_instances;
   if (@txt_instances == 0){
     delete $self->_misspelled_words->{$word->text};
+    # last instance of this word. remove from widget.
+    $self->speller_widget->remove_missp($word->text);
   } else {
     $self->_misspelled_words->{$word->text} = \@txt_instances;
   }
@@ -741,7 +743,12 @@ sub clear_misspelled_word_instances_in_range{
       }
     }
   }
-  $self->remove_misspelled_word($_) for @instances;
+  for (@instances){
+    $self->remove_misspelled_word($_);
+    #use Data::Dumper;
+    #print Dumper ($self->_misspelled_words->{$_->text});
+    # unless (@{$self->_misspelled_words->{$_->text}}){ }
+  }
 }
 
 sub all_misspelled_word_instances{

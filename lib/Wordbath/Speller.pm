@@ -130,7 +130,7 @@ sub add_missp{
   my $tv = $self->_missp_view;
   my $model = $tv->get_model;
   my $i = $model->get_iter_first;
-  while($i){
+  while(1){
     my $stord_word = $model->get($i,0);
     return if $txt eq $stord_word;
     last unless $model->iter_next($i);
@@ -138,6 +138,20 @@ sub add_missp{
   my $a = $model->append;
   $model->set($a, 0, $txt);
   $model->set($a, 1, 'gtk-add');
+}
+sub remove_missp{
+  my ($self,$word) = @_;
+  my $tv = $self->_missp_view;
+  my $model = $tv->get_model;
+  my $i = $model->get_iter_first;
+  while(1){
+    my $row_word = $model->get($i,0);
+    if ($word eq $row_word){
+      $model->remove($i);
+      return;
+    }
+    last unless $model->iter_next($i);
+  }
 }
 
 1;
