@@ -50,15 +50,10 @@ sub _build_widget{
   my $self = shift;
   my $vb = Gtk3::Box->new('vertical',3);
   my $spell_label = Gtk3::Label->new('REMINDER: SPELL CORRECTLY');
-  #my $spell_label2= Gtk3::Label->new('DOIT! ' . $self->check_word('12ad'));
-  #$_->get_style_context->remove_class("background")
-  #  for ($vb,$spell_label);
   $vb->pack_start($self->check_all_button, 0,0,0);
-  #$vb->pack_start($spell_label,0,0,0);
   my $scrolledwin = Gtk3::ScrolledWindow->new();
   $scrolledwin->add($self->_missp_view);
   $vb->pack_end($scrolledwin,1,1,0);
-  #$vb->pack_end($self->_candidates_view,0,0,0);
   $vb->pack_end($spell_label,0,0,0);
   return $vb;
 }
@@ -130,7 +125,7 @@ sub add_missp{
   my $tv = $self->_missp_view;
   my $model = $tv->get_model;
   my $i = $model->get_iter_first;
-  while(1){
+  while($i){
     my $stord_word = $model->get($i,0);
     return if $txt eq $stord_word;
     last unless $model->iter_next($i);
@@ -144,7 +139,7 @@ sub remove_missp{
   my $tv = $self->_missp_view;
   my $model = $tv->get_model;
   my $i = $model->get_iter_first;
-  while(1){
+  while($i){
     my $row_word = $model->get($i,0);
     if ($word eq $row_word){
       $model->remove($i);
